@@ -220,7 +220,7 @@ int _nCmpUI64(UINT64 n1, UINT64 n2 )
 
 // comparation < = >.
 // renvoie -1 si on est < a clNombre2. 0 si égal. 1 si on est supérieur
-int CInt256::nCompareU(const CInt256 &clNombre2)
+int CInt256::nCompareU(const CInt256 &clNombre2) const
 {
 	// commence en comparant les poids forts
 	for (int i = nSizeI8-1; i >=0 ; i--)
@@ -319,7 +319,7 @@ int CInt256::_nGetMagnitudeEtDivisteurRapide(OUT UINT32 *pnQuickDivisor) const
 	return 0;
 }
 // Effectue une division rapide.
-CInt256 CInt256::_clDivQuick(UINT32 nQuickDivisor, int nMagnitude)
+CInt256 CInt256::_clDivQuick(UINT32 nQuickDivisor, int nMagnitude) const
 {
 	if (bNegative())
 	{
@@ -364,7 +364,7 @@ CInt256 CInt256::Abs(void) const
 
 // Division entière de this
 // ex : 2445 / 1000 => (2, 445)
-void CInt256::Divide(const CInt256 &clDiviseur, OUT CInt256 *pclDivision, OUT CInt256* pclReste)
+void CInt256::Divide(const CInt256 &clDiviseur, OUT CInt256 *pclDivision, OUT CInt256* pclReste) const
 {
 	if (clDiviseur.bIsZero())
 	{
@@ -541,6 +541,31 @@ void CInt256::ToStrBase10(OUT PXSTR pszVal, int nLenInChar)
 	*pCur = 0;
 }
 
+// Renvoie le carré 
+CInt256 CInt256::Pow2(void) const
+{
+	CInt256 clRes(*this);
+	CInt256 clRes2(*this);
+	clRes.Mult(clRes2);
+	return clRes2;
+}
+// Renvoie le cube 
+CInt256 CInt256::Pow3(void) const
+{
+	CInt256 clRes(*this);
+	CInt256 clRes2(*this);
+	clRes.Mult(clRes2);
+	clRes.Mult(clRes2); 
+	return clRes2;
+}
+// renvoie le modulo = reste de la divistion par <clDiviseur>
+CInt256 CInt256::Modulo(const CInt256 &clDiviseur) const
+{
+	CInt256 clDivision;
+	CInt256 clReste;
+	Divide(clDiviseur, &clDivision, &clReste);
+	return clReste;
+}
 
 
 
