@@ -29,7 +29,7 @@ public:
 
 	// comparation non signée < = >.
 	// renvoie -1 si onest < a clNombre2. 0 si égal. 1 si on est supérieur
-	int nCompareU(const CInt256 &clNombre2);
+	int nCompareU(const CInt256 &clNombre2) const;
 
 	// init a 0
 	void SetToZero(void);
@@ -71,12 +71,19 @@ public:
 	void MultUI32(UINT32 nVal);
 	// Multiplication par une puissance de 2 (décalage de bits)
 	void MultPow2(int nPow2);
-
+	// Renvoie le carré 
+	CInt256 Pow2(void) const;
+	//  Renvoie le cube 
+	CInt256 Pow3(void) const;
+	 
 	// Division entière de this
 	// ex : 2445 / 1000 => (2, 445)
-	void Divide(const CInt256 &clDiviseur, OUT CInt256 *pclDivision, OUT CInt256 *pclclReste);
+	void Divide(const CInt256 &clDiviseur, OUT CInt256 *pclDivision, OUT CInt256 *pclclReste) const;
 	// division par 2
 	void DivideBy2(void);
+	// renvoie le modulo = reste de la divistion par <clDiviseur>
+	CInt256 Modulo(const CInt256 &clDiviseur) const;
+
 
 	// renvoie la valeur abosolue
 	CInt256 Abs(void) const;
@@ -90,7 +97,7 @@ protected:
 	// renvoie la magnitude. cad la puisance de 2 max du nombre
 	int _nGetMagnitudeEtDivisteurRapide(OUT UINT32 *pnQuickDivisor) const;
 	// Effectue une division rapide.
-	CInt256 _clDivQuick(UINT32 nQuickDivisor, int nMagnitude);
+	CInt256 _clDivQuick(UINT32 nQuickDivisor, int nMagnitude) const;
 
 };
 
