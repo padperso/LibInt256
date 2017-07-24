@@ -354,6 +354,7 @@ CBigIntFixed CBigIntFixed::_clDivQuick(UINT32 nQuickDivisor, int nMagnitude) con
 	// MAJ résultat
 	CBigIntFixed clResultat(nSizeInByte());
 	clResultat.FromUI8(nQuotient);
+	clResultat.MultPow2(nMagnitude);
 	return clResultat;
 }
 
@@ -403,6 +404,16 @@ void CBigIntFixed::Divide(const CBigIntFixed &clDiviseur, OUT CBigIntFixed *pclD
 		*pclReste    = 0L;
 		return;
 	}
+	// cas des négatif
+	if (bNegative())
+	{
+		CBigIntFixed clCopiePositive(*this);
+		clCopiePositive.Negate();
+		clCopiePositive.Divide(clDiviseur, pclDivision, pclReste);
+		pclDivision->Negate();
+		return;
+	}
+
 	// --- algo itératif trouvé ici 
 	// http://justinparrtech.com/JustinParr-Tech/an-algorithm-for-arbitrary-precision-integer-division/
 
@@ -490,11 +501,31 @@ void CBigIntFixed::FromStrBase10(PCXSTR pszVal)
 
 }
 
+// insérer 1 char a début de <pszVal>
+void _Insert1Char( PXSTR pszVal, int nLenInChar, char cNum)
+{
+	memmove(pszVal + 1, pszVal, nLenInChar - 1);
+	*pszVal = cNum;
+}
+
 
 // vers une chaine en base 10.
 // nLenInChar doit faire au moins 79 charatères.
-void CBigIntFixed::ToStrBase10(OUT PXSTR pszVal, int nLenInChar)
+void CBigIntFixed::ToStrBase10(OUT PXSTR pszVal, int nLenInChar) const
 {
+
+	//fermer la chaine
+	*pszVal = 0;
+
+	// cas de "-6452"
+	if (bNegative())
+	{
+		CBigIntFixed clCopiePositive(*this);
+		clCopiePositive.ToStrBase10(pszVal + 1,nLenInChar-1); // +1, résever la place pour "-"
+		*pszVal = '-';
+		return;
+	}
+	
 	// cas parrticulier du 0
 	if (bIsZero())
 	{
@@ -502,58 +533,34 @@ void CBigIntFixed::ToStrBase10(OUT PXSTR pszVal, int nLenInChar)
 		return;
 	}
 
-	// 1E77, valeur max puissance de 10
-	static const int nPow2Max = 77;
-	CBigIntFixed cl256Pow10Cur(nSizeInByte());
-	cl256Pow10Cur = 1;
-	// calcul de toutes les pussance de 10. de 1 à 10^77
-	//CBigIntFixed Tabi256Pow10[nPow2Max + 1];
-	CBigIntFixed *Tabpcl256Pow10[nPow2Max + 1];
-
-	//Tabi256Pow10[0] = 1L;
-	for (int i = 0; i <= nPow2Max; i++)
-	{
-		Tabpcl256Pow10[i] = new CBigIntFixed(cl256Pow10Cur);
-		cl256Pow10Cur.MultUI32(10);
-	}
-	// division par toutes les puissances de 10
-	BOOL bChiffreAjoute = FALSE;
+	// 10 = la base
+	CBigIntFixed cl10(nSizeInByte());
+	cl10 = 10;
+	
+	// division par  10 tant que > 10
 	CBigIntFixed clCur(*this);
-	int nPow2 = nPow2Max;
-	PXSTR pCur = pszVal;
-	while (nPow2 >= 0)
+	while (clCur.nCompareU(cl10) == 1)
 	{
 		// Division entière
-		// ex : 2445 / 1000 => (2, 445)
-		const CBigIntFixed &clPow10Cur = *Tabpcl256Pow10[nPow2];
+		// ex : 2445 / 10 => (2, 445)
 		CBigIntFixed clDivision(nSizeInByte());
 		CBigIntFixed clReste(nSizeInByte());
 		XASSERT(!clCur.bNegative());
-		clCur.Divide(clPow10Cur, &clDivision, &clReste);
+		clCur.Divide(cl10, &clDivision, &clReste);
 		XASSERT(!clReste.bNegative());
 		// nombre a affecter a la pos courante
 		int nNumber = (int)clDivision.nToUI8();
 		XASSERT(nNumber >= 0);
 		XASSERT(nNumber <= 9);
-		// ajout du char si c'est 0 et pas encore ajouté
-		if (nNumber != 0 || bChiffreAjoute)
-		{
-			char cNum = '0' + nNumber;
-			*pCur = cNum;
-			pCur++;
-			bChiffreAjoute = TRUE;
-		}
+		// insert du char 
+		char cNum = '0' + nNumber;
+		_Insert1Char(pszVal, nLenInChar, cNum);
 
 		// suivant
 		clCur.CopieFrom( clReste );
-		nPow2--;
-	}
-	// libération
-	for (int i = 0; i <= nPow2Max; i++)
-		delete Tabpcl256Pow10[i];
 
-	//fermer la chaine
-	*pCur = 0;
+	}
+
 }
 
 // Renvoie le carré 
@@ -562,7 +569,7 @@ CBigIntFixed CBigIntFixed::Pow2(void) const
 	CBigIntFixed clRes(*this);
 	CBigIntFixed clRes2(*this);
 	clRes.Mult(clRes2);
-	return clRes2;
+	return clRes;
 }
 // Renvoie le cube 
 CBigIntFixed CBigIntFixed::Pow3(void) const
@@ -571,7 +578,7 @@ CBigIntFixed CBigIntFixed::Pow3(void) const
 	CBigIntFixed clRes2(*this);
 	clRes.Mult(clRes2);
 	clRes.Mult(clRes2); 
-	return clRes2;
+	return clRes;
 }
 // renvoie le modulo = reste de la divistion par <clDiviseur>
 CBigIntFixed CBigIntFixed::Modulo(const CBigIntFixed &clDiviseur) const
@@ -580,6 +587,13 @@ CBigIntFixed CBigIntFixed::Modulo(const CBigIntFixed &clDiviseur) const
 	CBigIntFixed clReste(nSizeInByte());
 	Divide(clDiviseur, &clDivision, &clReste);
 	return clReste;
+}
+
+//@@TEST
+#include "Int256.h"
+void CBigIntFixed::InitFromInt256(const class CInt256 &clSrc)
+{
+	memcpy(m_TabVal, clSrc.m_TabVal, 256/8 );
 }
 
 

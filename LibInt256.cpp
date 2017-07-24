@@ -7,35 +7,58 @@
 #include "int256.h"
 #include "BigIntFixed.h"
 
-
-CInt256 fEllipticBtc(const CInt256 &x, const CInt256 &y)
+//class  CInt256 : public CInt
+void _Print(const CBigIntFixed &clNum)
 {
-	CInt256 P;
-	P.FromStrBase10("115792089237316195423570985008687907853269984665640564039457584007908834671663");
+	char szBuf[320] = {};
+	clNum.ToStrBase10(szBuf, 320);
+	printf(szBuf);
+	printf("\r\n");
 
-	CInt256 clRes 
-		= x.Pow3();
-	clRes.AddI4(7);
-	CInt256 Y2 = y.Pow2();
-	clRes.Substract(Y2);
-	
-	
-	return clRes.Modulo( P );
 }
 
-char szBuf[80] = {};
+CBigIntFixed fEllipticBtc(const CInt256 &x, const CInt256 &y)
+{
+#define nTAILLE 1024/8
+	CBigIntFixed bigX(nTAILLE);
+	bigX.InitFromInt256( x );
+	CBigIntFixed bigY(nTAILLE);
+	bigY.InitFromInt256( y );
+
+	CBigIntFixed P(nTAILLE);
+	P.FromStrBase10("115792089237316195423570985008687907853269984665640564039457584007908834671663");
+	_Print(P);
+
+	CBigIntFixed clRes(nTAILLE);
+	clRes = bigX.Pow3();
+	_Print(clRes);
+
+	clRes.AddI4(7);
+	CBigIntFixed Y2 = bigY.Pow2();
+//	_Print(Y2);
+
+	clRes.Substract(Y2);
+//	_Print(clRes);
+
+	
+	CBigIntFixed clResModP(nTAILLE);
+	clResModP = clRes.Modulo( P );
+	return clResModP;
+}
+
+
 
 int main()
 {
 
 	CBigIntFixed b1(512/8);
 	b1.FromStrBase10("115792089237316195423570985008687907853269984665640564039457584007908834671663");
-	b1.ToStrBase10(szBuf, 80);
-	printf(szBuf);
+	_Print( b1 );
+	//printf(szBuf);
 
 	CInt256 x;
 	CInt256 y;
-	CInt256 fxy;
+	//CInt256 fxy;
 
 
 
@@ -54,8 +77,8 @@ int main()
 	x.FromStrBase10("327");
 	y.FromStrBase10("10");
 
-	x.Modulo(y).ToStrBase10(szBuf, 80);
-	printf(szBuf);
+//	x.Modulo(y).ToStrBase10(szBuf, 80);
+//	printf(szBuf);
 
 	x.FromStrBase10("3212132335");
 	x.FromStrBase10("3267051002075881697");
@@ -63,13 +86,9 @@ int main()
 	x.FromStrBase10("55066263022277343669578718895168534326250603453777594175500187360389116729240");
 	y.FromStrBase10("32670510020758816978083085130507043184471273380659243275938904335757337482424");
 
+	CBigIntFixed fxy(nTAILLE);
 	fxy = fEllipticBtc(x, y);
-	
-
-
-	//char szBuf[80] = {};
-	x.ToStrBase10(szBuf, 80);
-	printf(szBuf);
+	_Print(fxy);
 
     return 0;
 

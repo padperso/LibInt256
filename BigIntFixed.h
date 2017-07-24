@@ -36,8 +36,14 @@ public:
 
 	// init a 0
 	void SetToZero(void);
+
+	// = 0 ?
 	BOOL bIsZero(void) const;
+	// < 0 ?
 	BOOL bNegative(void) const;
+
+	//@@TEST
+	void InitFromInt256(const class CInt256 &clSrc);
 
 	// ---- convertions ----
 
@@ -50,10 +56,10 @@ public:
 	UINT64 nToUI8(void) const;
 	// depuis une chaine en base 10.
 	// ex : "32670510020758816978083085130507043184471273380659243275938904335757337482424"
-	void FromStrBase10(PCXSTR pszVal);
+	void FromStrBase10(PCXSTR pszVal) ; 
 	// vers une chaine en base 10.
 	// nLenInChar doit faire au moins 79 charatères.
-	void ToStrBase10(OUT PXSTR pszVal, int nLenInChar);
+	void ToStrBase10(OUT PXSTR pszVal, int nLenInChar) const;
 	// depuis une chaine en base 16
 	// ex : "1E99423A4ED27608A15A2616A2B0E9E52CED330AC530EDCC32C8FFC6A526AEDD"
 	void FromStrHexa(PCXSTR pszVal);

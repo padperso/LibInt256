@@ -8,6 +8,8 @@ static const int nSizeI8     = 4;  // 64 * 4 = 256
 
 class CInt256
 {
+	friend class CBigIntFixed;
+
 protected:
 	// Little-endian : 0 : poids faible, 7 poids fort
 	UINT64 m_TabVal[nSizeI8];
