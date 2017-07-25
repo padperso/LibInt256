@@ -307,54 +307,91 @@ void CBigIntFixed::MultPow2(int nPow2)
 }
 
 
-// renvoie la magnitude. cad la puisance de 2 max du nombre
-// <pnQuickDivisor>: diviseur rapide ( a multipler par cette puissance de 2 )
-int CBigIntFixed::_nGetMagnitudeEtDivisteurRapide(OUT UINT32 *pnQuickDivisor) const
+
+// renvoie la magnitude. cad la puisance de 2 max du nombre et sa valeur dans cette puissance de 2.
+// ex : "0x344A3" => 20,3
+void CBigIntFixed::_GetPow2AndCoef(OUT UINT32 *pnPow2, OUT UINT32 *pnCoef) const
 {
+	// recherche le 1er 0 en partant du poids fort
 	int nSizeI4 = nSizeInI4();
 	for (int i = nSizeI4 - 1; i >= 0; i--)
 	{
 		UINT32 nVal = _nGetI4(i);
 		if (nVal != 0)
 		{
-			*pnQuickDivisor = nVal;
-			return i * 32;
+			*pnCoef = nVal;
+			*pnPow2			= i * 32;
+			return;
 		}
 	}
-	XASSERT(FALSE);
-	*pnQuickDivisor = 1;
-	return 0;
+	// arrive si *this= 0
+	*pnCoef = 0;
+	*pnPow2	= 0;
+}
+
+struct STQuickDiv
+{
+	// puisance de 2 nombre qui divise
+	// ex: 0x6186 => 16 
+	UINT32 nMagnitudeDivisor; 
+	// plus gos chiffe significatif
+	// ex: 0x61386 => 6
+	UINT32 nQuickDivisor;
+};
+
+// renvoie les info pour effecter une division rapide appproximative
+void CBigIntFixed::_GetQuickDiv(  OUT STQuickDiv *pstQuickDiv) const
+{
+  _GetPow2AndCoef(&pstQuickDiv->nMagnitudeDivisor, &pstQuickDiv->nQuickDivisor);
+
+//	int nSizeI4 = nSizeInI4();
+//	if (nMagnitude / 32 < nSizeI4 - 1)
+			  //{
+			  //	// prends aussi le poids fort
+			  //	nNumerateur +=  (UINT64)_nGetI4(nMagnitude / 32 + 1) << 32;
+			  //}
 }
 // Effectue une division rapide.
-CBigIntFixed CBigIntFixed::_clDivQuick(UINT32 nQuickDivisor, int nMagnitude) const
+CBigIntFixed CBigIntFixed::_clDivQuick(const STQuickDiv &stQuickDiv) const
 {
 	if (bNegative())
 	{
 		CBigIntFixed clCopie(*this);
 		clCopie.Negate();
-		CBigIntFixed clRes = clCopie._clDivQuick(nQuickDivisor, nMagnitude);
+		CBigIntFixed clRes = clCopie._clDivQuick(stQuickDiv);
 		clRes.Negate();
 		XASSERT(clRes.bNegative() || clRes.bIsZero() );// 0 aussi possible
 		return clRes;
 	}
 
 
-	XASSERT(nMagnitude >= 0);
-	XASSERT(nMagnitude < 256);
-	// récup du numérateur divisé par la la magnitude
-	// ex : 56584 => '5'
-	UINT64 nNumerateur = _nGetI4(nMagnitude / 32);
-	int nSizeI4 = nSizeInI4();
-	if (nMagnitude / 32 < nSizeI4 - 1)
+	XASSERT(stQuickDiv.nMagnitudeDivisor >= 0);
+	XASSERT(stQuickDiv.nMagnitudeDivisor < 256);
+
+	// récup info du numérateur = this
+	UINT32 nMagnitudeNumerator;
+	UINT32 nCoefNumerator;
+	_GetPow2AndCoef(&nMagnitudeNumerator, &nCoefNumerator);
+	UINT64 nNumerateur = nCoefNumerator;
+	// récup du numérateur en sur 64 bits si possible
+	if (nMagnitudeNumerator >= 32)
 	{
-		// prends aussi le poids fort
-		nNumerateur +=  (UINT64)_nGetI4(nMagnitude / 32 + 1) << 32;
+		// prends aussi le poids fabile du suivant
+		nNumerateur = (nNumerateur<<32)  + (UINT64)_nGetI4( (nMagnitudeNumerator - 32)/32 );
+		nMagnitudeNumerator -= 32;
 	}
-	UINT64 nQuotient = nNumerateur /(UINT64)nQuickDivisor;
+
+	XASSERT(nMagnitudeNumerator >= 0);
+	XASSERT(nMagnitudeNumerator < 256);
+	XASSERT(nMagnitudeNumerator >= stQuickDiv.nMagnitudeDivisor);
+
+	UINT64 nQuotient = nNumerateur /(UINT64)stQuickDiv.nQuickDivisor;
 	// MAJ résultat
 	CBigIntFixed clResultat(nSizeInByte());
 	clResultat.FromUI8(nQuotient);
-	clResultat.MultPow2(nMagnitude);
+	// ex: 5600 / 100 :  4 - 3 => 1
+	int nMagnitudeRes = nMagnitudeNumerator - stQuickDiv.nMagnitudeDivisor;
+	clResultat.MultPow2(nMagnitudeRes);
 	return clResultat;
 }
 
@@ -418,11 +455,11 @@ void CBigIntFixed::Divide(const CBigIntFixed &clDiviseur, OUT CBigIntFixed *pclD
 	// http://justinparrtech.com/JustinParr-Tech/an-algorithm-for-arbitrary-precision-integer-division/
 
 	//M = length in digits of D, minus 1.  So if D is 1234, there are 4 digits, M = 3.
-	UINT32 nQuickDivisorA;
-	int nMagnitude = clDiviseur._nGetMagnitudeEtDivisteurRapide(&nQuickDivisorA);
+	STQuickDiv stQuickDivisorA;
+	clDiviseur._GetQuickDiv(&stQuickDivisorA);
 	//A = D – ( D MOD 10^M ). ex 64367 => 60000, mais en Puissance de 2
 	//= clDiviseur._nGetQuickDivisor(nMagnitude);
-	CBigIntFixed clQuotient = _clDivQuick(nQuickDivisorA, nMagnitude);
+	CBigIntFixed clQuotient = _clDivQuick(stQuickDivisorA);
 	CBigIntFixed clReste( clDiviseur );
 	clReste.AddI4(1);
 
@@ -436,7 +473,7 @@ void CBigIntFixed::Divide(const CBigIntFixed &clDiviseur, OUT CBigIntFixed *pclD
 		clReste.Substract(clTemp);
 
 		// Qn = Q + R / A
-		CBigIntFixed clQuotientN = clReste._clDivQuick(nQuickDivisorA, nMagnitude);
+		CBigIntFixed clQuotientN = clReste._clDivQuick(stQuickDivisorA);
 		clQuotientN.Add(clQuotient);
 
 		// Q = (Q + Qn) / 2
@@ -537,19 +574,19 @@ void CBigIntFixed::ToStrBase10(OUT PXSTR pszVal, int nLenInChar) const
 	CBigIntFixed cl10(nSizeInByte());
 	cl10 = 10;
 	
-	// division par  10 tant que > 10
+	// division par  10 tant que non nul
 	CBigIntFixed clCur(*this);
-	while (clCur.nCompareU(cl10) == 1)
+	while (!clCur.bIsZero())
 	{
 		// Division entière
 		// ex : 2445 / 10 => (2, 445)
-		CBigIntFixed clDivision(nSizeInByte());
+		CBigIntFixed clQuotient(nSizeInByte());
 		CBigIntFixed clReste(nSizeInByte());
 		XASSERT(!clCur.bNegative());
-		clCur.Divide(cl10, &clDivision, &clReste);
+		clCur.Divide(cl10, &clQuotient, &clReste);
 		XASSERT(!clReste.bNegative());
 		// nombre a affecter a la pos courante
-		int nNumber = (int)clDivision.nToUI8();
+		int nNumber = (int)clReste.nToUI8();
 		XASSERT(nNumber >= 0);
 		XASSERT(nNumber <= 9);
 		// insert du char 
@@ -557,7 +594,7 @@ void CBigIntFixed::ToStrBase10(OUT PXSTR pszVal, int nLenInChar) const
 		_Insert1Char(pszVal, nLenInChar, cNum);
 
 		// suivant
-		clCur.CopieFrom( clReste );
+		clCur.CopieFrom(clQuotient);
 
 	}
 

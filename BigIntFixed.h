@@ -3,6 +3,8 @@
 
 #pragma once
 
+struct STQuickDiv;
+
 
 class CBigIntFixed
 {
@@ -106,10 +108,13 @@ protected:
 	void _SetI4(int nNumMot, UINT32 nVal );
 
 	// utilitaires pour la division
-	// renvoie la magnitude. cad la puisance de 2 max du nombre
-	int _nGetMagnitudeEtDivisteurRapide(OUT UINT32 *pnQuickDivisor) const;
+	// renvoie la magnitude. cad la puisance de 2 max du nombre et sa valeur dans cette puissance de 2.
+	// ex : "0x344A3" => 20,3
+	void _GetPow2AndCoef(OUT UINT32 *pnPow2, OUT UINT32 *pnCoef) const;
+	// renvoie les info pour effecter une division rapide appproximative par this
+	void _GetQuickDiv( OUT STQuickDiv *pstQuickDiv) const;
 	// Effectue une division rapide.
-	CBigIntFixed _clDivQuick(UINT32 nQuickDivisor, int nMagnitude) const;
+	CBigIntFixed _clDivQuick(const struct STQuickDiv &stQuickDiv) const;
 
 };
 

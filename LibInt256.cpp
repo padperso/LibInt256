@@ -52,6 +52,12 @@ int main()
 {
 
 	CBigIntFixed b1(512/8);
+
+	b1.FromStrBase10("317");
+	_Print(b1);
+	b1.FromStrBase10("8913175891");
+	_Print(b1);
+
 	b1.FromStrBase10("115792089237316195423570985008687907853269984665640564039457584007908834671663");
 	_Print( b1 );
 	//printf(szBuf);
