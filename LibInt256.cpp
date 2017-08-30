@@ -7,6 +7,8 @@
 #include "int256.h"
 #include "BigIntFixed.h"
 
+#include "src/BigInt.h"
+
 //class  CInt256 : public CInt
 void _Print(const CBigIntFixed &clNum)
 {
@@ -27,15 +29,19 @@ CBigIntFixed fEllipticBtc(const CInt256 &x, const CInt256 &y)
 
 	CBigIntFixed P(nTAILLE);
 	P.FromStrBase10("115792089237316195423570985008687907853269984665640564039457584007908834671663");
-	_Print(P);
+//	_Print(P);
+
+
+	_Print(bigY);
+	CBigIntFixed Y2 = bigY.Pow2();
+	_Print(Y2);
 
 	CBigIntFixed clRes(nTAILLE);
 	clRes = bigX.Pow3();
-	_Print(clRes);
+//	_Print(clRes);
 
 	clRes.AddI4(7);
-	CBigIntFixed Y2 = bigY.Pow2();
-//	_Print(Y2);
+
 
 	clRes.Substract(Y2);
 //	_Print(clRes);
@@ -47,10 +53,17 @@ CBigIntFixed fEllipticBtc(const CInt256 &x, const CInt256 &y)
 }
 
 
+void ECDSA_Test_ALL(void);
 
 int main()
 {
 
+	CBigInt::sTEST_ALL();
+	
+	ECDSA_Test_ALL();
+
+	return 0; 
+	/*
 	CBigIntFixed b1(512/8);
 
 	b1.FromStrBase10("317");
@@ -95,8 +108,8 @@ int main()
 	CBigIntFixed fxy(nTAILLE);
 	fxy = fEllipticBtc(x, y);
 	_Print(fxy);
-
+	
     return 0;
-
+	*/
 }
 

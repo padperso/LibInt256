@@ -19,13 +19,17 @@ public:
 	CBigIntFixed(int nSizeInByte);
 	// constructeur. copie
 	CBigIntFixed(const CBigIntFixed &clSrc);	
+	// destructeur
+	~CBigIntFixed();
 
+	// taille en bit
+	UINT nSizeInBit(void) const  { return m_nSizeInByte*8; }
 	// taille en octets
-	int nSizeInByte(void) const { return m_nSizeInByte; }
+	int nSizeInByte(void) const { return m_nSizeInByte;   }
 	// taille en I4 = mots de 4 octets = 32 bits
-	int nSizeInI4(void) const {	return m_nSizeInByte/4;}
+	int nSizeInI4(void) const   { return m_nSizeInByte/4; }
 	// taille en I8 = mots de 8 octets = 64 bits
-	int nSizeInI8(void) const { return m_nSizeInByte/8; }
+	int nSizeInI8(void) const   { return m_nSizeInByte/8; }
 
 	// copie
 	void CopieFrom(const CBigIntFixed &clSrc);

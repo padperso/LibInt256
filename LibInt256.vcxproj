@@ -100,6 +100,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PrecompiledHeaderFile>central.h</PrecompiledHeaderFile>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -142,6 +143,9 @@
     <ClInclude Include="BigIntFixed.h" />
     <ClInclude Include="central.h" />
     <ClInclude Include="Int256.h" />
+    <ClInclude Include="src\BigInt.h" />
+    <ClInclude Include="src\BigPoint2D.h" />
+    <ClInclude Include="src\EllipticCurve.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
@@ -149,6 +153,11 @@
     <ClCompile Include="BigIntFixed.cpp" />
     <ClCompile Include="Int256.cpp" />
     <ClCompile Include="LibInt256.cpp" />
+    <ClCompile Include="src\BigInt.cpp" />
+    <ClCompile Include="src\BigInt_Test.cpp" />
+    <ClCompile Include="src\BigPoint2D.cpp" />
+    <ClCompile Include="src\ECDSA_Test.cpp" />
+    <ClCompile Include="src\EllipticCurve.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

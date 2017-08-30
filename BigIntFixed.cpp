@@ -17,7 +17,11 @@ CBigIntFixed::CBigIntFixed(const CBigIntFixed &clSrc)
 	_Init(clSrc.nSizeInByte());
 	CopieFrom(clSrc);
 }
-
+// destructeur
+CBigIntFixed::~CBigIntFixed()
+{
+	free(m_TabVal);
+}
 
 // init a 0
 void CBigIntFixed::_Init(int nSizeInByte)
@@ -183,7 +187,15 @@ void CBigIntFixed::_SetI4(int nNumMot, UINT32 nVal)
 void CBigIntFixed::MultUI32(UINT32 nMultiplicateur )
 {
 	UINT32 nCarry = 0; // retenue
-	CBigIntFixed clRes(nSizeInByte());
+	CBigIntFixed clSrcCopie(nSizeInByte());
+	clSrcCopie.CopieFrom(*this);
+	SetToZero();
+
+	if (nMultiplicateur == 0)
+	{
+		//SetToZero();
+		return;
+	}
 					 
 	// ajout des mots de 32 nits en commencant par le poids faible
 	int nSizeI4 = nSizeInI4();
@@ -192,12 +204,12 @@ void CBigIntFixed::MultUI32(UINT32 nMultiplicateur )
 		UINT32 nResLow;
 		UINT32 nResHigh;
 		//  (h,l)  = a * m
-		UINT32 nA = _nGetI4(i);
+		UINT32 nA = clSrcCopie._nGetI4(i);
 		_MultI4(nA, nMultiplicateur, &nResLow, &nResHigh);
 		
 		UINT32 nRes = _nAddI4WithCarry(0, nResLow, nCarry, &nCarry);
 		_SetI4(i, nRes);
-		nCarry = nResHigh;
+		nCarry += nResHigh;
 
 	}
 }
@@ -209,11 +221,12 @@ void CBigIntFixed::Mult(const CBigIntFixed &clVal2)
 	int nSizeI4 = nSizeInI4();
 	for (int i = 0; i < nSizeI4; i++)
 	{
-		// x = x * i
+		// x = m [ dword n°i ]
 		UINT32 nI = clVal2._nGetI4(i);
 		CBigIntFixed clMulI(*this);
+		// x = t * m
 		clMulI.MultUI32(nI);
-		// x = x << i
+		// x = x * 2^(i*32)
 		clMulI.MultPow2(i * 32);
 		// res= res + x
 		clResut.Add(clMulI);
@@ -273,7 +286,7 @@ void CBigIntFixed::DivideBy2(void)
 void CBigIntFixed::MultPow2(int nPow2)
 {
 	if (nPow2 <= 0) return;
-	if (nPow2 >= 256)
+	if (nPow2 >= (int)nSizeInBit()) // si trop grand, 
 	{
 		SetToZero();
 		return;
@@ -289,6 +302,7 @@ void CBigIntFixed::MultPow2(int nPow2)
 		ZeroMemory(m_TabVal, NbByte); // des 0 sur les poids faibles
 		nPow2 = nPow2 - NbByte * 8;
 		if (nPow2 <= 0) return;
+		XASSERT(FALSE);
 	}
 
 
@@ -354,6 +368,8 @@ void CBigIntFixed::_GetQuickDiv(  OUT STQuickDiv *pstQuickDiv) const
 // Effectue une division rapide.
 CBigIntFixed CBigIntFixed::_clDivQuick(const STQuickDiv &stQuickDiv) const
 {
+	CBigIntFixed clResultat(nSizeInByte());
+
 	if (bNegative())
 	{
 		CBigIntFixed clCopie(*this);
@@ -366,7 +382,7 @@ CBigIntFixed CBigIntFixed::_clDivQuick(const STQuickDiv &stQuickDiv) const
 
 
 	XASSERT(stQuickDiv.nMagnitudeDivisor >= 0);
-	XASSERT(stQuickDiv.nMagnitudeDivisor < 256);
+	XASSERT(stQuickDiv.nMagnitudeDivisor < (UINT)nSizeInBit());
 
 	// récup info du numérateur = this
 	UINT32 nMagnitudeNumerator;
@@ -380,14 +396,21 @@ CBigIntFixed CBigIntFixed::_clDivQuick(const STQuickDiv &stQuickDiv) const
 		nNumerateur = (nNumerateur<<32)  + (UINT64)_nGetI4( (nMagnitudeNumerator - 32)/32 );
 		nMagnitudeNumerator -= 32;
 	}
+	//si on divisive par un nombre nettemen plus grand
+	if (nMagnitudeNumerator < stQuickDiv.nMagnitudeDivisor)
+	{
+		// le résultat de la division est 0
+		clResultat.SetToZero();
+		return clResultat;
+
+	}
 
 	XASSERT(nMagnitudeNumerator >= 0);
-	XASSERT(nMagnitudeNumerator < 256);
+	XASSERT(nMagnitudeNumerator < nSizeInBit());
 	XASSERT(nMagnitudeNumerator >= stQuickDiv.nMagnitudeDivisor);
 
 	UINT64 nQuotient = nNumerateur /(UINT64)stQuickDiv.nQuickDivisor;
 	// MAJ résultat
-	CBigIntFixed clResultat(nSizeInByte());
 	clResultat.FromUI8(nQuotient);
 	// ex: 5600 / 100 :  4 - 3 => 1
 	int nMagnitudeRes = nMagnitudeNumerator - stQuickDiv.nMagnitudeDivisor;
@@ -464,7 +487,8 @@ void CBigIntFixed::Divide(const CBigIntFixed &clDiviseur, OUT CBigIntFixed *pclD
 	clReste.AddI4(1);
 
 	// While  ABS(R)>=D
-	while (  clReste.Abs().nCompareU(clDiviseur) == 1 )
+	int nNbTour = 0;
+	while (  clReste.Abs().nCompareU(clDiviseur) != -1 )
 	{
 		// R = N – (Q * D)
 		CBigIntFixed clTemp(clQuotient);
@@ -477,19 +501,22 @@ void CBigIntFixed::Divide(const CBigIntFixed &clDiviseur, OUT CBigIntFixed *pclD
 		clQuotientN.Add(clQuotient);
 
 		// Q = (Q + Qn) / 2
+
 		CBigIntFixed clNewQ = clQuotient;
 		clNewQ.Add(clQuotientN);
 		clNewQ.DivideBy2();
 		// anti-boulce infinie si en /2 on retombe sur le meme
-		//if (clNewQ.nCompareU(clQuotient) == 0)
-		//{
-			//clNewQ.AddI4(1); // Q++
-		//}
+		if (clNewQ.nCompareU(clQuotient) == 0 && clReste.Abs().nCompareU(clDiviseur) != -1)
+		{
+			clNewQ.AddI4(1); // Q++
+		}
+		nNbTour++;
+		XASSERT(nNbTour <= nSizeInByte() * 200);
 		clQuotient = clNewQ;
-
 	}
 	
 	//R = N – (Q * D)    Calculate a final value for R
+
 	CBigIntFixed clTemp(clQuotient);
 	clTemp.Mult(clDiviseur);
 	clReste = *this;
@@ -506,6 +533,14 @@ void CBigIntFixed::Divide(const CBigIntFixed &clDiviseur, OUT CBigIntFixed *pclD
 	// MAJ résultat
 	*pclDivision = clQuotient;
 	*pclReste    = clReste;
+
+#ifdef _DEBUG
+	// on teste en debug le résultat
+	CBigIntFixed clDBG_Tst(clQuotient);
+	clDBG_Tst.Mult(clDiviseur);
+	clDBG_Tst.Add(clReste);
+	XASSERT( nCompareU(clDBG_Tst) == 0);
+#endif//__DEBUG
 }
 
 
