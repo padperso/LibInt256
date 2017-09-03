@@ -82,7 +82,6 @@ public:
 	void MultPow2(int nPow2);
 	// Division par une puissance de 2 (décalage de bits)
 	void DivPow2(int nPow2);
-	void _DivPow2(int nPow2);
 
 	// Renvoie le carré 
 	CBigInt Pow2(void) const;
@@ -161,6 +160,7 @@ protected:
 	UINT64 _nGetI8(int nNumMot) const;
 	//version pour addition, gère les cas  ou nNumMot est plus grand que le max
 	UINT32 _nGetI4Add(int nNumMot) const;
+	UINT64 _nGetI8Add(int nNumMot) const;
 	// affectation n em mot. alloc si nécessaire
 	void _SetI8(int nNumMot, UINT64 nVal);
 	void _SetI4(int nNumMot, UINT32 nVal);

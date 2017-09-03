@@ -162,13 +162,40 @@ BOOL CBigInt::bNegative(void) const
 {
 	return (m_TabVal[nSizeInI8() - 1] & BITHIGH_64) != 0;
 }
-
 // addition de 3 I4 avec gestion du carry
-UINT32 static _nAddI4WithCarry(UINT32  n1, UINT32 n2, UINT32 n3, OUT UINT32 *pnCarry)
+UINT32 static _nAddI4WithCarry_DBG(UINT32  n1, UINT32 n2, UINT32 n3, OUT UINT32 *pnCarry)
 {
 	INT64 nRes64 = (UINT64)n1 + (UINT64)n2 + (UINT64)n3;
 	*pnCarry = nRes64 > 0xFFFFFFFF;
 	return     nRes64 & 0xFFFFFFFF;
+}
+// addition de 3 I4 avec gestion du carry
+UINT32 static _nAddI4WithCarry(UINT32  n1, UINT32 n2, UINT32 n3, OUT UINT32 *pnCarry)
+{
+	UINT32 nRes32 = n1 + n2;
+	*pnCarry = (nRes32 < n1);
+	nRes32 += n3;
+	*pnCarry |= ((nRes32 < n1) || (nRes32 < n2));
+
+		/*
+#ifdef _DEBUG
+	UINT32 nCarryDBG = 0;
+	UINT32 nResDBG = _nAddI4WithCarry_DBG(n1, n2, n3, &nCarryDBG);
+	XASSERT(nCarryDBG == *pnCarry);
+	XASSERT(nResDBG ==     nRes32);
+#endif//!_DEBUG
+	*/
+	return     nRes32;
+}
+// addition de 3 I8 avec gestion du carry
+UINT64 static _nAddI8WithCarry(UINT64  n1, UINT64 n2, UINT64 n3, OUT UINT64 *pnCarry)
+{
+	UINT64 nRes64 = n1 + n2;
+	*pnCarry = (nRes64 < n1);
+	nRes64 += n3;
+	*pnCarry |= ((nRes64 < n1) || (nRes64 < n2));
+
+	return nRes64;
 }
 void static _MultI4(UINT32  n1, UINT32 n2, OUT UINT32 *pnLow, UINT32 *pnHigh)
 {
@@ -211,6 +238,17 @@ UINT32  CBigInt::_nGetI4Add(int nNumMot) const
 	UINT32 *pnTabVal32 = (UINT32 *)m_TabVal;
 	return pnTabVal32[nNumMot];
 }
+UINT64  CBigInt::_nGetI8Add(int nNumMot) const
+{
+	XASSERT(nNumMot >= 0);
+	if (nNumMot >= nSizeInI8())
+	{
+		if (bNegative()) return 0XFFFFFFFFFFFFFFFF;
+		else             return 0;
+	}
+	return m_TabVal[nNumMot];
+}
+
 // renvoie le n°eme mot de 64 bits. 0 poids faible
 UINT64  CBigInt::_nGetI8(int nNumMot) const
 {
@@ -292,20 +330,20 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 {
 	CBigInt clRes;
 
-	UINT32 nCarry = 0; // retenue
+	UINT64 nCarry = 0; // retenue
 					  
 	// ajout des mots de 32 nits en commencant par le poids faible
-	int nNbI4 = std::max<int>( A.nSizeInI4(), B.nSizeInI4() ) ;
+	int nNbI8 = std::max<int>( A.nSizeInI8(), B.nSizeInI8() ) ;
 	int i;
-	for ( i = 0; i < nNbI4; i++)
+	for ( i = 0; i < nNbI8; i++)
 	{
 		XASSERT(nCarry == 0 || nCarry == 1);
 		// addition de this+ paramr + carry précédent
-		UINT32 nA = A._nGetI4Add(i);
-		UINT32 nB = B._nGetI4Add(i);
-		UINT32 nRes = _nAddI4WithCarry(nA, nB, nCarry, &nCarry);
+		UINT64 nA = A._nGetI8Add(i);
+		UINT64 nB = B._nGetI8Add(i);
+		UINT64 nRes = _nAddI8WithCarry(nA, nB, nCarry, &nCarry);
 		//MAJ dans le resultat
-		clRes._SetI4(i, nRes);
+		clRes._SetI8(i, nRes);
 	}
 	// gestion du carry si l'addtion donne un nombre qui dépasse
 	// et que A et B sont de meme signe zet pas du signe du résultat
@@ -322,20 +360,20 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 				//&& A.Abs().nCompareU(B.Abs())!=-1 
 				)
 			{
-				clRes._SetI4(i, ALLBIT1_32);
+				clRes._SetI8(i, ALLBIT1_64);
 				// si on est que le poids faible on met aussi le poids fort.
 				if (i % 2 == 0)
-					clRes._SetI4(i + 1, ALLBIT1_32);
+					clRes._SetI8(i + 1, ALLBIT1_64);
 			}
 
 		}
 		else
-			clRes._SetI4(i, 1);
+			clRes._SetI8(i, 1);
 		i++;
 	}
 	// ajoute un bloc de poids fort si on tombe sur un négatif
 	if (clRes.bNegative() && !A.bNegative() && !B.bNegative())
-		clRes._SetI4(i, 0);
+		clRes._SetI8(i, 0);
 
 	// suppression des mots avec 0 au début
 	clRes._Trim0();
@@ -426,7 +464,7 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
  {
 	 UINT32 nCarry = 0; // retenue
 	 CBigInt clSrcCopie(*this);
-	 bool bNegatif = clSrcCopie.bNegative();
+	 BOOL bNegatif = clSrcCopie.bNegative();
 	 if (bNegatif)
 	 {
 		 clSrcCopie.Negate();
@@ -512,31 +550,9 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 */
 	 _Trim0();
  }
- // Division par une puissance de 2 (décalage de bits)
- void CBigInt::DivPow2(int nPow2)
- {
-	 XDBG(CBigInt clCopie_DBG = *this);
-	 XDBG(CBigInt clCopie_DBG2 = *this);
-	// rebond
-	 _DivPow2(nPow2);
-
-#ifdef _DEBUG
-	 for (int i = 0; i < nPow2; i++)
-		 clCopie_DBG.DivideBy2();
-
-	 if (clCopie_DBG != *this)
-	 {
-		 clCopie_DBG2.DBG_Print();
-		 DBG_Print();
-		 clCopie_DBG.DBG_Print();
-		 *this = clCopie_DBG2;
-		 XASSERT(FALSE);
-	 }
-#endif
- }
-
+ 
 // Division par une puissance de 2 (décalage de bits)
- void CBigInt::_DivPow2(int nPow2)
+ void CBigInt::DivPow2(int nPow2)
 {
 	 XDBG(CBigInt clCopie_DBG = *this);
 
@@ -606,7 +622,7 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 		 // x = x * 2^(i*32)
 		 clMulI.MultPow2(i * 32);
 		 // res= res + x
-		 clResult = clResult + clMulI;
+		 clResult += clMulI;
 	 }
 	 clResult._Trim0();
 	 //  résultat
@@ -897,8 +913,8 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 	 {
 		 // R = N – (Q * D)
 		// clQuotient.DBG_Print();
-		 CBigInt clTemp(clQuotient);
-		 clTemp *= clDiviseur;//@test
+		 //CBigInt clTemp(clQuotient);
+		// clTemp *= clDiviseur;//@test
 		 //clTemp.DBG_Print();
 		 //clReste = *this - clTemp;
 		 clReste = *this - clQuotient*clDiviseur;
@@ -932,7 +948,7 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 #ifdef _DEBUG
 		 //@TEST
 		 nNbTour++;
-		 if (nNbTour > m_nSizeInByte * 100)
+		 if (nNbTour > m_nSizeInByte * 10+10)
 		 {
 			this->DBG_Print();
 			clDiviseur.DBG_Print();

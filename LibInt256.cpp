@@ -57,10 +57,17 @@ void ECDSA_Test_ALL(void);
 
 int main()
 {
+	DWORD nStart = GetTickCount();
 
 	CBigInt::sTEST_ALL();
 	
 	ECDSA_Test_ALL();
+
+	DWORD nEnd = GetTickCount();
+	printf("Time : %d", nEnd - nStart);
+	Sleep(2000);
+
+
 
 	return 0; 
 	/*
