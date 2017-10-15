@@ -146,7 +146,9 @@
     <ClInclude Include="Int256.h" />
     <ClInclude Include="src\BigInt.h" />
     <ClInclude Include="src\BigPoint2D.h" />
+    <ClInclude Include="src\ECDSA.h" />
     <ClInclude Include="src\EllipticCurve.h" />
+    <ClInclude Include="src\sha2_256.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
@@ -157,8 +159,11 @@
     <ClCompile Include="src\BigInt.cpp" />
     <ClCompile Include="src\BigInt_Test.cpp" />
     <ClCompile Include="src\BigPoint2D.cpp" />
+    <ClCompile Include="src\ECDSA.cpp" />
     <ClCompile Include="src\ECDSA_Test.cpp" />
     <ClCompile Include="src\EllipticCurve.cpp" />
+    <ClCompile Include="src\sha2_256.cpp" />
+    <ClCompile Include="src\Sha2_2emeImpl.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

@@ -6,11 +6,12 @@
 #include "EllipticCurve.h"
 
 // contruit une courbe elliptique.. init avec des nombres Hexa ou décimaux.
-CEllipticCurve::CEllipticCurve(PCXSTR pszA, PCXSTR pszB, PCXSTR pszModulo)
+CEllipticCurve::CEllipticCurve(PCXSTR pszA, PCXSTR pszB, PCXSTR pszModulo, PCXSTR pszOrdre)
 {
 	m_clA.FromStrBasePrefix(pszA);
 	m_clB.FromStrBasePrefix(pszB);
 	m_clModulo.FromStrBasePrefix(pszModulo);
+	m_clOrdre.FromStrBasePrefix(pszOrdre);
 }
 
 
@@ -21,7 +22,9 @@ BOOL CEllipticCurve::bPointEstSurLaCourbe(RCCBigPoint2D clPoint) const
 	XASSERT(m_clA.bIsZero()); // cas non géré
 
 	CBigInt clY2 = clPoint.m_clY.Pow2();
-	CBigInt clX3 = clPoint.m_clX.Pow3() + m_clB ;
+//	CBigInt clX3 = clPoint.m_clX.Pow3() + m_clB ;
+	CBigInt clX3 = clPoint.m_clX.Pow2().Modulo(m_clModulo);
+	clX3 = clX3*clPoint.m_clX + m_clB;
 
 	CBigInt clY2_Mod = clY2.Modulo(m_clModulo);
 	CBigInt clX3_Mod = clX3.Modulo(m_clModulo);
@@ -43,11 +46,13 @@ CBigPoint2D CEllipticCurve::_clPointDoubling(RCCBigPoint2D A) const
 
 	CBigPoint2D clRes;
 	CBigInt RX  = (L*L - ( A.m_clX + A.m_clX )).Modulo(m_clModulo);
-	clRes.m_clX = RX; // L*L - (A.m_clX + A.m_clX);
+	clRes.m_clX = RX; 
 	clRes.m_clY = -(L*(RX - A.m_clX ) + A.m_clY);
 	clRes.Modulo(m_clModulo);
 
+#ifdef	DEBUG_LENT
 	XASSERT(bPointEstSurLaCourbe(clRes));
+#endif//DEBUG_LENT
 	return clRes;
 }
 
@@ -58,9 +63,10 @@ CBigPoint2D CEllipticCurve::Add(RCCBigPoint2D A, RCCBigPoint2D B)
 	if (A.bIsZero()) return B;
 	if (B.bIsZero()) return A;
 
-
+#ifdef DEBUG_LENT
 	 XASSERT(bPointEstSurLaCourbe(A));
 	 XASSERT(bPointEstSurLaCourbe(B));
+#endif//DEBUG_LENT
 
 	// si les points sont confondus
 	if (A == B)
@@ -71,7 +77,9 @@ CBigPoint2D CEllipticCurve::Add(RCCBigPoint2D A, RCCBigPoint2D B)
 
 	// si A et B sont inverse
 	if (   A.m_clX ==  B.m_clX
-		&& A.m_clY == (-B.m_clY).Modulo(m_clModulo))
+		//&& A.m_clY == (-B.m_clY).Modulo(m_clModulo))
+		&& A.m_clY != B.m_clY
+	  )
 	{
 		// le résultat est 0.
 		//printf("=0\n");
@@ -87,7 +95,7 @@ CBigPoint2D CEllipticCurve::Add(RCCBigPoint2D A, RCCBigPoint2D B)
 	// NB : ici a=0.
 	CBigInt N = A.m_clY - B.m_clY;
 	CBigInt D = A.m_clX - B.m_clX;
-	CBigInt L = N * D.InvertModulo(m_clModulo);
+	CBigInt L = (N * D.InvertModulo(m_clModulo)).Modulo(m_clModulo);
 
 	CBigPoint2D clRes;
 	clRes.m_clX = L*L - A.m_clX - B.m_clX;
@@ -95,13 +103,15 @@ CBigPoint2D CEllipticCurve::Add(RCCBigPoint2D A, RCCBigPoint2D B)
 	clRes.m_clY = -(A.m_clY + L * (clRes.m_clX -  A.m_clX ));
 	clRes.Modulo(m_clModulo);
 
+#ifdef DEBUG_LENT
 	XASSERT(bPointEstSurLaCourbe(clRes));
+#endif//#ifdef DEBUG_LENT
 	return clRes;
 
 }
 
 // Multiplication d'un poiunt pas un entier au sens de l'addition précédente
-CBigPoint2D CEllipticCurve::MultBigInt(RCCBigPoint2D A, CBigInt K)
+CBigPoint2D CEllipticCurve::MultBigInt(RCCBigPoint2D A, const CBigInt &K)
 {
 	CBigPoint2D clRes;
 

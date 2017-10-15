@@ -9,6 +9,9 @@ protected:
 	UINT64 *m_TabVal;
 	// Taille  en octets
 	int	   m_nSizeInByte;
+	// OPTIM : Tant que  moins de 256 bits =  4 QWORD, pas d'alloc dyn
+	#define NLIMIT_PREALLOCINBYTE (4*8)
+	UINT64 m_PreAlloc[NLIMIT_PREALLOCINBYTE / 8];
 
 public:
 	// constructeur. init a 0
@@ -17,6 +20,8 @@ public:
 	CBigInt(const CBigInt &clSrc);
 	// constructeur a partir d'un INT64
 	CBigInt(INT64 n);
+	// constructeur a partir d'un chaine avec un nombre en base 10 ou 16 (si commence par 0x)
+	CBigInt(PCXSTR pszValAsString);
 	// destructeur
 	~CBigInt();
 	//C++11 move constructor
@@ -78,6 +83,8 @@ public:
 	friend CBigInt operator *(RCBigInt A, RCBigInt B);
 	// Multiplication par un entier 32
 	void MultUI32(UINT32 nVal);
+	// Multiplication par un entier 64
+	void MultUI64(UINT64 nMultiplicateur);
 	// Multiplication par une puissance de 2 (décalage de bits)
 	void MultPow2(int nPow2);
 	// Division par une puissance de 2 (décalage de bits)
@@ -115,7 +122,7 @@ public:
 		OUT CBigInt *pgdc, OUT CBigInt *px, OUT CBigInt *py);
 	// calcul de l'invere modulaire
 	// cas x tel que x *(*this) == 1 modulo mod
-	CBigInt InvertModulo(RCBigInt mod);
+	CBigInt InvertModulo(RCBigInt mod) const;
 
 	// -- convertion chaines
 
@@ -125,6 +132,9 @@ public:
 	// depuis une chaine en base 16
 	// ex : "1E99423A4ED27608A15A2616A2B0E9E52CED330AC530EDCC32C8FFC6A526AEDD"
 	void FromStrHexa(PCXSTR pszVal);
+	// depuis une série d'octet
+	void FromRawBytes(PBYTE pByte, int nByteCount);
+
 	// vers une chaine en base 10.
 	void ToStrBase10(OUT PXSTR pszVal, int nLenInChar) const;
 	// vers une chaine en base 16.
@@ -188,3 +198,4 @@ protected:
 	UINT64 _nToUI8(void) const;
 
 };
+typedef const CBigInt &RCCBigInt;

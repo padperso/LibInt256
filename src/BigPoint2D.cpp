@@ -11,6 +11,13 @@ void CBigPoint2D::SetXY(PCXSTR pszX, PCXSTR pszY)
 	m_clX.FromStrBase10(pszX);
 	m_clY.FromStrBase10(pszY);
 }
+// Init a partir de coord x,y en bigint
+void CBigPoint2D::SetXY(const CBigInt X, const CBigInt Y)
+{
+	m_clX = X;
+	m_clY = Y;
+}
+
 // opérateur d"galité de 2 points
 bool operator == (RCCBigPoint2D A, RCCBigPoint2D B)
 {

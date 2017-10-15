@@ -2,6 +2,9 @@
 // point ZD en coord BigInt.
 // pour ECDSA : Elliptic Curve Digital Signature Algorithm
 
+#ifndef __BIGPOINT2D_H
+#define __BIGPOINT2D_H
+
 #include "BigInt.h"
 
 
@@ -18,6 +21,8 @@ public:
 	CBigPoint2D(void) {};
 	// Init a partir de coord x,y en chaines décimales
 	void SetXY(PCXSTR pszX, PCXSTR pszY);
+	// Init a partir de coord x,y en bigint
+	void SetXY(const CBigInt X, const CBigInt Y);
 	// opérateur d"galité de 2 points
 	friend bool operator == (RCCBigPoint2D A, RCCBigPoint2D B);
 	// appliquer le mme modulo a X et Y
@@ -31,3 +36,4 @@ public:
 };
 
 
+#endif//!__BIGPOINT2D_H

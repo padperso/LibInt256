@@ -29,10 +29,18 @@ CBigInt::CBigInt(INT64 n)
 	_Init(8);
 	*this = n; // opérateur d'affectation
 }
+// constructeur a partir d'un chaine avec un nombre en base 10 ou 16 (si commence par 0x)
+CBigInt::CBigInt(PCXSTR pszValAsString)
+{
+	_Init(8);
+	FromStrBasePrefix(pszValAsString);
+}
+
+
 // destructeur
 CBigInt::~CBigInt()
 {
-	if (m_TabVal != NULL)
+	if (m_TabVal != NULL && m_TabVal != m_PreAlloc)
 		free(m_TabVal);
 }
 
@@ -40,8 +48,19 @@ CBigInt::~CBigInt()
 CBigInt::CBigInt(CBigInt&& other)
 {
 	m_nSizeInByte = other.m_nSizeInByte;
-	m_TabVal	  = other.m_TabVal;
-	other.m_TabVal = NULL;
+	if (other.m_TabVal == other.m_PreAlloc)
+	{
+		// copie des octets 
+		XASSERT(other.m_nSizeInByte <= NLIMIT_PREALLOCINBYTE);
+		m_TabVal = m_PreAlloc;
+		memcpy(m_PreAlloc, other.m_PreAlloc, other.m_nSizeInByte);
+
+	}
+	else
+	{
+		m_TabVal = other.m_TabVal;
+		other.m_TabVal = NULL;
+	}
 	other.m_nSizeInByte = 0;
 }
 
@@ -49,8 +68,9 @@ CBigInt::CBigInt(CBigInt&& other)
 // init a 0
 void CBigInt::_Init(int nSizeInByte)
 {
+	XASSERT(nSizeInByte <= NLIMIT_PREALLOCINBYTE);
 	m_nSizeInByte = nSizeInByte;
-	m_TabVal	  = (UINT64 *)malloc(nSizeInByte);
+	m_TabVal = m_PreAlloc;// (UINT64 *)malloc(nSizeInByte);
 	ZeroMemory(m_TabVal, nSizeInByte);
 }
 // realloc 
@@ -67,9 +87,25 @@ void CBigInt::_Resize(int nSizeInByte, EResieMode e)
 		return;// rien a faire
 	BOOL bNegatif = bNegative();
 
+	// si on avait pas encore alloué de ram
+	if (m_TabVal == m_PreAlloc ) //m_nSizeInByte<=NLIMIT_PREALLOCINBYTE)
+	{
+		// si on a besoin car c'est trop grand
+		if (nSizeInByte > NLIMIT_PREALLOCINBYTE)
+		{
+			// 1er alloc dyn
+			m_TabVal = (UINT64 *)malloc(nSizeInByte);
+			//copie ancienne valeur
+			memcpy(m_TabVal, m_PreAlloc, m_nSizeInByte);
+		}
+	}
+	else
+	{
+		XASSERT(m_TabVal != m_PreAlloc);
+		// MAj taille du tableau
+		m_TabVal = (UINT64 *)realloc(m_TabVal, nSizeInByte);
+	}
 
-	// MJA taille du tableau
-	m_TabVal	  = (UINT64 *)realloc(m_TabVal, nSizeInByte);
 
 
 	if (e != eSansRemplissage)
@@ -206,6 +242,12 @@ void static _MultI4(UINT32  n1, UINT32 n2, OUT UINT32 *pnLow, UINT32 *pnHigh)
 	*pnLow = (nRes64 & 0xFFFFFFFFL);
 	*pnHigh = (nRes64 >> 32);
 }
+void static _MultI8(UINT64  n1, UINT64 n2, OUT UINT64 *pnLow, UINT64 *pnHigh)
+{
+	*pnLow = _umul128(n1, n2, pnHigh);
+}
+
+
 
 // renvoie le n°eme mot de 32 bits. 0 poids faible
 UINT32  CBigInt::_nGetI4(int nNumMot) const
@@ -511,6 +553,59 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 	 XASSERT(!bIsZero());
  }
 
+
+ // Multiplication par un entier 64
+ void CBigInt::MultUI64(UINT64 nMultiplicateur)
+ {
+	 UINT64 nCarry = 0; // retenue
+	 CBigInt clSrcCopie(*this);
+	 BOOL bNegatif = clSrcCopie.bNegative();
+	 if (bNegatif)
+	 {
+		 clSrcCopie.Negate();
+	 }
+
+	 SetToZero();
+	 // cas *0
+	 if (nMultiplicateur == 0 || clSrcCopie.bIsZero())
+	 {
+		 XASSERT(bIsZero());
+		 return;
+	 }
+
+	 // ajout des mots de 32 nits en commencant par le poids faible
+	 int nSizeI8 = clSrcCopie.nSizeInI8();
+	 int i;
+	 for (i = 0; i < nSizeI8; i++)
+	 {
+		 UINT64 nResLow;
+		 UINT64 nResHigh;
+		 //  (h,l)  = a * m
+		 UINT64 nA = clSrcCopie._nGetI8(i);
+		 _MultI8(nA, nMultiplicateur, &nResLow, &nResHigh);
+
+		 UINT64 nRes = _nAddI8WithCarry(0, nResLow, nCarry, &nCarry);
+		 _SetI8(i, nRes);
+		 nCarry += nResHigh;
+	 }
+	 // ajout du carry
+	 if (nCarry)
+	 {
+		 _SetI8(i, nCarry);
+		 i++;
+	 }
+
+	 // si on mis le bit de poids fort a 1
+	 if (bNegative())
+		 _SetI8(i, 0); // pour quel'on reste positif
+
+
+					   // restauration du signe
+	 if (bNegatif)
+		 Negate();
+	 XASSERT(!bIsZero());
+ }
+
  // Multiplication par une puissance de 2 (décalage de bits)
  void CBigInt::MultPow2(int nPow2)
  {
@@ -611,16 +706,16 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 	 // on multiplie chaque DWORD par clVal2
 
 	 CBigInt clMulI;
-	 int nSizeI4 = std::max<int>(A.nSizeInI4(), B.nSizeInI4());
-	 for (int i = 0; i < nSizeI4; i++)
+	 int nSizeI8 = std::max<int>(A.nSizeInI8(), B.nSizeInI8());
+	 for (int i = 0; i < nSizeI8; i++)
 	 {
 		 // x = m [ dword n°i ]
-		 UINT32 nIB = B._nGetI4Add(i);
+		 UINT64 nIB = B._nGetI8Add(i);
 		 clMulI = A;
 		 // x = t * m
-		 clMulI.MultUI32(nIB);
+		 clMulI.MultUI64(nIB);
 		 // x = x * 2^(i*32)
-		 clMulI.MultPow2(i * 32);
+		 clMulI.MultPow2(i * 64);
 		 // res= res + x
 		 clResult += clMulI;
 	 }
@@ -822,13 +917,13 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 
  void CBigInt::operator +=(RCBigInt A)
  {
-	 CBigInt clRes = *this + A;
-	 *this = clRes;
+	 *this = *this + A;
+	 //*this = clRes;
  }
  void CBigInt::operator *=(RCBigInt A)
  {
-	 CBigInt clRes = *this * A;
-	 *this = clRes;
+	 *this = *this * A;
+	 //*this = clRes;
  }
  void CBigInt::operator -=(RCBigInt A)
  {
@@ -871,6 +966,13 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 		 clCopiePositive.Negate();
 		 Divide(clCopiePositive, pclQuotient, pclReste);
 		 pclQuotient->Negate();
+		 return;
+	 }
+	 // x/1 = x
+	 if (clDiviseur == 1)
+	 {
+		 *pclQuotient = *this;
+		 *pclReste    = 0L;
 		 return;
 	 }
 	 // si on est plus petit que le diviseur
@@ -919,9 +1021,11 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 		 //clReste = *this - clTemp;
 		 clReste = *this - clQuotient*clDiviseur;
 		 //clReste.DBG_Print();
+#ifdef DEBUG_LENT
 		 XASSERT(clReste.Abs().nCompareU(*this) != 1); // plus grand que le divisé
 		 XASSERT(nNbTour==0 || clReste.Abs().nCompareU(clRestePrec.Abs()) == -1); // le reste dtoi décroitre
 		 XDBG(clRestePrec = clReste);
+#endif//DEBUG_LENT
 		// clReste -= clTemp;
 
 		 // Qn = Q + R / A
@@ -948,7 +1052,7 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 #ifdef _DEBUG
 		 //@TEST
 		 nNbTour++;
-		 if (nNbTour > m_nSizeInByte * 10+10)
+		 if (nNbTour > m_nSizeInByte * 32)
 		 {
 			this->DBG_Print();
 			clDiviseur.DBG_Print();
@@ -1070,12 +1174,12 @@ int _nGetValByteHexa(PCXSTR pszVal)
  // ex : "1E99423A4ED27608A15A2616A2B0E9E52CED330AC530EDCC32C8FFC6A526AEDD"
  void CBigInt::FromStrHexa(PCXSTR pszVal)
  {
-	 int nNbChar = strlen(pszVal);
+	 size_t nNbChar = strlen(pszVal);
 	 if (nNbChar < 2)
 		 return;// invalide
 
 	 //taille en octet : "0xA4" => 1 octets pour 2 char
-	 int nNbTaille = nNbChar / 2;
+	 int nNbTaille = (int)nNbChar / 2;
 	 BOOL bImpair = nNbChar % 2 == 1;
 	 // init/reinit taille modulo 8
 	 _Resize(nNbTaille + bImpair, eSansSigne);
@@ -1098,6 +1202,18 @@ int _nGetValByteHexa(PCXSTR pszVal)
 
 	 _Trim0();// cas de "000000000000000001"
  }
+ // depuis une série d'octet
+ void CBigInt::FromRawBytes(PBYTE pByte, int nByteCount)
+ {
+	 XASSERT(nByteCount > 0);
+	 // alloc
+	 _Resize(nByteCount, eSansRemplissage);
+	 // copie de la source dans <m_TabVal>
+	 memcpy(m_TabVal, pByte, nByteCount);
+
+	 _Trim0();// cas de "000000000000000001"
+ }
+
 
  // renvoie le modulo = reste de la divistion par <clDiviseur>
  CBigInt CBigInt::Modulo(const CBigInt &clDiviseur) const
@@ -1238,68 +1354,26 @@ static void _Insert1Char(PXSTR pszVal, int nLenInChar, char cNum)
 		 s = sTemp - quotient * sOld;
 		 t = tTemp - quotient * t;
 		
-#ifdef _DEBUG
+#ifdef DEBUG_LENT
 		 // les égalités r = a*u+b*v et r' = a*u'+b*v' sont des invariants de boucle
 		CBigInt TestVal = A * s + B * t;
 		XASSERT(TestVal.Modulo(B) == r);
-#endif//_DEBUG
+#endif//DEBUG_LENT
 	 }
 
 	 *ppgdc = rOld;
 	 *px    = sOld;
 	 *py	= tOld;
 
-#ifdef _DEBUG
+#ifdef DEBUG_LENT
 	 CBigInt TestVal = A * (*px) + B * (*py);
 	 XASSERT(TestVal.Modulo(B) == *ppgdc);
-/*	  CBigInt TestVal_Mod = TestVal.Modulo(B);
-	 if (TestVal_Mod != *ppgdc)
-	 {
-		 A.DBG_Print();
-		 B.DBG_Print();
-
-		 CBigInt A0 = A * (*px);
-		 A0.DBG_Print();
-		 CBigInt A0Mod = A0.Modulo(B);
-		 A0Mod.DBG_Print();
-
-		 ppgdc->DBG_Print();
-		 px->DBG_Print();
-		 TestVal.DBG_Print();
-		 TestVal_Mod.DBG_Print();
-
-		 XASSERT(FALSE);
-	 }
-
-	 /*
-	 A.DBG_Print();
-	 px->DBG_Print();
-	 CBigInt A0 = A * (*px);
-	 A0.DBG_Print();
-	 B.DBG_Print();
-	 CBigInt A0Mod = A0.Modulo(B);
-	 A0Mod.DBG_Print();
-	 XASSERT(A0Mod == 1);
-
-
-	 XASSERT( *ppgdc == 1);
-
-	 CBigInt B0 = B * (*py);
-	 B0.DBG_Print();
-	 XASSERT(B0.Modulo(B) == 0);
-
-	  TestVal = A0 + B0;
-	 TestVal.DBG_Print();
-
-	 A0.DBG_Print();
-	 */
-
-#endif/_DEBUG
+#endif//DEBUG_LENT
  }
 
  // calcul de l'invere modulaire
  // cas x tel que x *(*this) == 1 modulo mod
- CBigInt CBigInt::InvertModulo(RCBigInt mod)
+ CBigInt CBigInt::InvertModulo(RCBigInt mod) const
  {
 	 XASSERT(!bIsZero());
 
@@ -1314,7 +1388,7 @@ static void _Insert1Char(PXSTR pszVal, int nLenInChar, char cNum)
 	 if (pgdc != 1)
 	 {
 		 XASSERT(FALSE);
-		 return 0;
+		 return (INT64)0;
 	 }
 	 // cas particulier des négatifs.
 	 if (x.bNegative())
@@ -1345,10 +1419,10 @@ static void _Insert1Char(PXSTR pszVal, int nLenInChar, char cNum)
 	 ToStrBase16(szBuf, 1320);
 	 
 	 // on aligne a droite
-	 int nLen = strlen(szBuf);
+	 size_t nLen = strlen(szBuf);
 	 if ((nOption & DBGPRINT_NORALIGN) == 0)
 	 {
-		 int nPadding = 170 - nLen;
+		 size_t nPadding = 170 - nLen;
 		 for (int i = 0; i < nPadding; i++)
 			 printf(" ");
 	 }

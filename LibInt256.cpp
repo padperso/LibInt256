@@ -8,6 +8,7 @@
 #include "BigIntFixed.h"
 
 #include "src/BigInt.h"
+#include "src/sha2_256.h"
 
 //class  CInt256 : public CInt
 void _Print(const CBigIntFixed &clNum)
@@ -52,11 +53,32 @@ CBigIntFixed fEllipticBtc(const CInt256 &x, const CInt256 &y)
 	return clResModP;
 }
 
-
+#include <iostream>
 void ECDSA_Test_ALL(void);
+std::string sha256(std::string input);
+
+void SHA_Test()
+{
+	//2em imple
+	std::string input = "";
+	std::string output1 = sha256(input);
+
+	int hash[8]={};
+	sha2_256( (byte *)"", 0, (byte *)hash);
+	//SHA256("")
+	//0x e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+	XASSERT(hash[0] == 0xe3b0c442);
+	XASSERT(hash[1] == 0x98fc1c14);
+	XASSERT(hash[2] == 0x9afbf4c8);
+
+}
+
 
 int main()
 {
+	SHA_Test();
+
+
 	DWORD nStart = GetTickCount();
 
 	CBigInt::sTEST_ALL();

@@ -4,38 +4,41 @@
 #include "central.h"
 
 #include "EllipticCurve.h"
+#include "ECDSA.h"
 
+CEllipticCurve clsekp256k1("0", "7", "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F",
+									 "0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141");
 
-void ECDSA_Test_ALL(void)
+// test addition/multiplication....
+void ECDSA_Test_BaseFunc(void)
 {
-	CEllipticCurve clsekp256k1("0","7","0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F");
-//	CEllipticCurve clsekp256k1("0","7","17");
+	//	CEllipticCurve clsekp256k1("0","7","17");
 
 
 
 	CBigPoint2D P1;
 	P1.SetXY("55066263022277343669578718895168534326250603453777594175500187360389116729240",
-		     "32670510020758816978083085130507043184471273380659243275938904335757337482424");
+			 "32670510020758816978083085130507043184471273380659243275938904335757337482424");
 	//P1.SetXY("1",  "12");
 
 
 
-	XASSERT(clsekp256k1.bPointEstSurLaCourbe( P1 ) );
+	XASSERT(clsekp256k1.bPointEstSurLaCourbe(P1));
 
 	CBigPoint2D MoinsP1 = P1;
 	MoinsP1.m_clY = -MoinsP1.m_clY;
-	MoinsP1.Modulo(clsekp256k1.clGetModulo() );
+	MoinsP1.Modulo(clsekp256k1.clGetModulo());
 	CBigPoint2D P0 = clsekp256k1.Add(P1, MoinsP1);
 	XASSERT(P0.bIsZero());
 
 
 	// test : (P+P) + (-P) == P
-	CBigPoint2D P2   = clsekp256k1.Add(P1, P1);
+	CBigPoint2D P2 = clsekp256k1.Add(P1, P1);
 	CBigPoint2D P1_2 = clsekp256k1.Add(P2, MoinsP1);;
 	XASSERT(P1_2 == P1);
 
 	// test : (P+P) + P == P + (P + P)
-	CBigPoint2D P3   = clsekp256k1.Add(P2, P1);
+	CBigPoint2D P3 = clsekp256k1.Add(P2, P1);
 	CBigPoint2D P3_2 = clsekp256k1.Add(P1, P2);
 	XASSERT(P3_2 == P3);
 
@@ -51,6 +54,88 @@ void ECDSA_Test_ALL(void)
 	CBigPoint2D P3_K = clsekp256k1.MultBigInt(P1, 3);
 	XASSERT(P3_K == P3);
 
+
+}
+
+// test signature
+void ECDSA_Test_Sign(void)
+{
+	CBigInt HashToSign(99);
+	CBigInt PrivKey("0x8eee2c6fe6c375dda3f5897149b5aa133ae63d53dba817bcb8e464bb36074b86");
+	
+	// récup de la clé publique
+	CBigPoint2D PublicKey;
+	PublicKey = ECDSA_GetPublicKey( PrivKey );
+	//PublicKey.m_clX.DBG_Print();
+	//PublicKey.m_clY.DBG_Print();
+	// résultat a trouver ( trouvé via ecda ptyhon)
+	CBigInt clPKRes_X("0xaf909720eb1d1aa3b9f9c9878f8758990349f8d4a87989af798bef3f8227e461");
+	CBigInt clPKRes_Y("0xc5b285e2482a87667f4ce1e2da69dca4745fdf69daeff76a3d642c5a6ea34bef");
+	XASSERT(PublicKey.m_clX == clPKRes_X);
+	XASSERT(PublicKey.m_clY == clPKRes_Y);
+
+
+	// -- Signature ---
+	CBigPoint2D Signature;
+	ECDSA_Sign(HashToSign,PrivKey, &Signature );
+	//Signature.m_clX.DBG_Print();
+	//Signature.m_clY.DBG_Print();
+
+
+	// vérif
+	BOOL bOK = ECDSA_bCheckSign(HashToSign, Signature, PublicKey );
+	XASSERT(bOK);
+
+
+	/*
+	CBigPoint2D P1;
+	P1.SetXY("55066263022277343669578718895168534326250603453777594175500187360389116729240",
+			 "32670510020758816978083085130507043184471273380659243275938904335757337482424");
+
+
+	// récup d'une clé privée
+	HCRYPTPROV   hCryptProv = NULL;
+	BYTE         pbData[32] = {};
+
+	CryptAcquireContext(
+		&hCryptProv,               // handle to the CSP
+		NULL,                  // container name 
+		NULL,                      // use the default provider
+		PROV_RSA_FULL,             // provider type
+		CRYPT_VERIFYCONTEXT);                        // flag values
+	XASSERT(hCryptProv != NULL);
+
+	if (CryptGenRandom(
+		hCryptProv,
+		32,
+		pbData))
+	{
+		printf("Random sequence generated. \n");
+	}
+	else
+	{
+		printf("Error during CryptGenRandom.\n");
+		exit(1);
+	}
+
+	// crée un entier a partir de cette valeur aléatoire
+	CBigInt SecretKey;
+	SecretKey.FromRawBytes(pbData,32);
+	// -- affiche la cél secrete
+	SecretKey.DBG_Print();
+	// crée la clé publique : K * P
+	CBigPoint2D PublicKey = clsekp256k1.MultBigInt(P1, SecretKey);
+	PublicKey.m_clX.DBG_Print();
+	PublicKey.m_clY.DBG_Print();
+	*/
+}
+
+
+void ECDSA_Test_ALL(void)
+{
+	ECDSA_Test_Sign();
+
+	ECDSA_Test_BaseFunc();
 
 	printf("ECDSA test PASSED\n");
 }
