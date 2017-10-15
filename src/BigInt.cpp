@@ -3,6 +3,7 @@
 #include "central.h"
 #include "BigInt.h"
 #include <algorithm>    // std::max
+#include "sha2_256.h"
 
 #define ALLBIT1_64 0xFFFFFFFFFFFFFFFFL // 64 bits a 1.
 #define ALLBIT1_32 0xFFFFFFFF		   // 32 bits a 1.
@@ -64,6 +65,18 @@ CBigInt::CBigInt(CBigInt&& other)
 	other.m_nSizeInByte = 0;
 }
 
+// Init a partir du hash d'une chaine
+void CBigInt::InitFromSha3_256(PCXSTR pszValToHash)
+{
+	// calcul dans hash;
+	UINT32 hash[8];// = (byte *)alloca(32);//{};
+	sha2_256(( byte *)pszValToHash, (int)strlen(pszValToHash), (byte *) hash);
+	// Init big int
+	_Resize(32, eSansRemplissage);
+	// copie résult en invesant l'endian
+	for (int i=0;i<8;i++)
+		_SetI4(7-i, hash[i]);
+}
 
 // init a 0
 void CBigInt::_Init(int nSizeInByte)
@@ -1109,7 +1122,7 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 		 && pszVal[1] == 'x')
 	 {
 		 // base 16
-		 FromStrHexa(pszVal);
+		 FromStrHexa(pszVal+2);
 		 return;
 	 }
 	 // base 10

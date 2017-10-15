@@ -7,11 +7,11 @@
 
 struct STint512
 {
-	byte m_bytes[512];
+	byte m_bytes[512/8];
 };
 struct STint256
 {
-	byte m_bytes[256];
+	byte m_bytes[32]; // 256/8 = 32
 };
 
 typedef STint512 uint512;
@@ -105,23 +105,10 @@ void sha2_256_raw(uint512 *pChunk, int nNbChunk, OUT uint256 *pHash)
 		// boucle principale de hachage
 		for (int i = 0; i < 64; i++) // 64 rondes
 		{
-			/*
-#define SHA256_F2(x) (SHA2_ROTR(x,  6) ^ SHA2_ROTR(x, 11) ^ SHA2_ROTR(x, 25))
-#define SHA2_MAJ(x, y, z) ((x & y) ^ (x & z) ^ (y & z))
-			t1 = wv[7] + SHA256_F2(wv[4]) + SHA2_CH(wv[4], wv[5], wv[6])
-				+ sha256_k[j] + w[j];
-			t2 = SHA256_F1(wv[0]) + SHA2_MAJ(wv[0], wv[1], wv[2]);
-			*/
-#define SHA256_F2(x) (SHA2_ROTR(x,  6) ^ SHA2_ROTR(x, 11) ^ SHA2_ROTR(x, 25))
 			uint32 S1 = rightrotate(e, 6) xor rightrotate(e,11) xor rightrotate(e, 25);
-			uint32 S1_2 = SHA256_F2(e); //( 6) xor rightrotate(e, 11) xor rightrotate(e, 25);
-#define SHA2_CH(x, y, z)  ((x & y) ^ (~x & z))
 			uint32 ch  = (e and f) xor ((~e) and g);
-			uint32 ch_2 = SHA2_CH(e, f, g);
 			uint32 temp1 = h_ + S1 + ch + k[i] + w[i];
-#define SHA256_F1(x) (SHA2_ROTR(x,  2) ^ SHA2_ROTR(x, 13) ^ SHA2_ROTR(x, 22))
 			uint32 S0 = rightrotate(a,2) xor rightrotate(a,13) xor rightrotate(a, 22);
-			uint32 S0_2 = SHA256_F1(a); //( 6) xor rightrotate(e, 11) xor rightrotate(e, 25);
 			uint32 maj = (a and b) xor (a and c) xor (b and c);
 			uint32 temp2 = S0 + maj;
 
@@ -147,7 +134,7 @@ void sha2_256_raw(uint512 *pChunk, int nNbChunk, OUT uint256 *pHash)
 	}
 
 	// résultat en big endian
-	memcpy(pHash, h, 32 * 8);
+	memcpy(pHash, h, 32);
 
 }
 

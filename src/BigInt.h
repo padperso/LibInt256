@@ -27,6 +27,9 @@ public:
 	//C++11 move constructor
 	CBigInt(CBigInt&& other);
 
+	// Init a partir du hash d'une chaine
+	void InitFromSha3_256(PCXSTR pszValToHash);
+
 
 	// = 0 ?
 	BOOL bIsZero(void) const;
