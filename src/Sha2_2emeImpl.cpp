@@ -6,6 +6,8 @@
 #define SHA256_H
 #include <string>
 
+
+
 class SHA256
 {
 protected:
@@ -113,11 +115,17 @@ void SHA256::transform(const unsigned char *message, unsigned int block_nb)
 			wv[2] = wv[1];
 			wv[1] = wv[0];
 			wv[0] = t1 + t2;
+			
+//			printf("%02d ",j);
+//			for (int i = 0; i < 8; i++)
+//				printf("%08X ", wv[i]);
+//			printf("\n");
 		}
 		for (j = 0; j < 8; j++) {
 			m_h[j] += wv[j];
 		}
 	}
+	printf("\n");
 }
 
 void SHA256::init()
@@ -183,7 +191,7 @@ std::string sha256(std::string input)
 
 	SHA256 ctx = SHA256();
 	ctx.init();
-	ctx.update((unsigned char*)input.c_str(), input.length());
+	ctx.update((unsigned char*)input.c_str(), (int)input.length());
 	ctx.final(digest);
 
 	char buf[2 * SHA256::DIGEST_SIZE + 1];

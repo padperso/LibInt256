@@ -39,6 +39,8 @@ uint32 rightshift(uint32 v, int shift) {
            | ((uint32) *((str) + 0) << 24);   \
 }
 
+
+
 // fonction de base :
 void sha2_256_raw(uint512 *pChunk, int nNbChunk, OUT uint256 *pHash)
 {
@@ -80,6 +82,12 @@ void sha2_256_raw(uint512 *pChunk, int nNbChunk, OUT uint256 *pHash)
 		for (int j = 0; j < 16; j++) {
 			SHA2_PACK32(&pChunkCur[j*4], &w[j]);
 		}
+		#define SHA256_F3(x) (SHA2_ROTR(x,  7) ^ SHA2_ROTR(x, 18) ^ SHA2_SHFR(x,  3))
+		#define SHA256_F4(x) (SHA2_ROTR(x, 17) ^ SHA2_ROTR(x, 19) ^ SHA2_SHFR(x, 10))
+		for (int j = 16; j < 64; j++) {
+			w[j] = SHA256_F4(w[j - 2]) + w[j - 7] + SHA256_F3(w[j - 15]) + w[j - 16];
+		}
+
 
 		//Extend the first 16 words into the remaining 48 words w[16..63] of the message schedule array:
 		#define xor ^
@@ -93,14 +101,17 @@ void sha2_256_raw(uint512 *pChunk, int nNbChunk, OUT uint256 *pHash)
 		}
 		
 		//  Initialize working variables to current hash value:
-		uint32 a  = h[0];
-		uint32 b  = h[1];
-		uint32 c  = h[2];
-		uint32 d  = h[3];
-		uint32 e  = h[4];
-		uint32 f  = h[5];
-		uint32 g  = h[6];
-		uint32 h_  = h[7];
+		uint32 wv[8] = {};//0
+		for (int i = 0; i < 8; i++)
+			wv[i] = h[i];
+		#define a  wv[0]
+		#define b  wv[1]
+		#define c  wv[2]
+		#define d  wv[3]
+		#define e  wv[4]
+		#define f  wv[5]
+		#define g  wv[6]
+		#define h_ wv[7]
 
 		// boucle principale de hachage
 		for (int i = 0; i < 64; i++) // 64 rondes
@@ -120,6 +131,10 @@ void sha2_256_raw(uint512 *pChunk, int nNbChunk, OUT uint256 *pHash)
 			c = b;
 			b = a;
 			a = temp1 + temp2;
+//			printf("%02d ",i);
+//			for (int k = 0; k < 8; k++)
+//				printf("%08X ", wv[k]);
+//			printf("\n");
 		}
 		//Add the compressed chunk to the current hash value:
 		h[0] +=  a;
@@ -136,6 +151,27 @@ void sha2_256_raw(uint512 *pChunk, int nNbChunk, OUT uint256 *pHash)
 	// résultat en big endian
 	memcpy(pHash, h, 32);
 
+}
+
+// Ecrit un entier non signé 32 bits, en big endian
+void SetUI32BigEndian(byte *pAddr, UINT32 nVal)
+{
+	*((pAddr) + 3) = (UINT8) ((nVal)      );       
+    *((pAddr) + 2) = (UINT8) ((nVal) >>  8);       
+    *((pAddr) + 1) = (UINT8) ((nVal) >> 16);       
+    *((pAddr) + 0) = (UINT8) ((nVal) >> 24);       
+}
+// Ecrit un entier non signé 64 bits, en big endian
+void SetUI64BigEndian(byte *pAddr, UINT64 nVal)
+{
+	*((pAddr) + 7) = (UINT8) ((nVal)      );       
+    *((pAddr) + 6) = (UINT8) ((nVal) >>  8);       
+    *((pAddr) + 5) = (UINT8) ((nVal) >> 16);       
+    *((pAddr) + 4) = (UINT8) ((nVal) >> 24);       
+	*((pAddr) + 3) = (UINT8) ((nVal) >> 32);       
+    *((pAddr) + 2) = (UINT8) ((nVal) >> 40);       
+    *((pAddr) + 1) = (UINT8) ((nVal) >> 48);       
+    *((pAddr) + 0) = (UINT8) ((nVal) >> 56);    
 }
 
 // point d'entrée de sha2 , 256 bits
@@ -159,8 +195,10 @@ void sha2_256(byte *pData, int nSizeData, OUT byte *pHash)
 	int nNbByte0 = nSizeRaw - 8 - 1 - nSizeData;
 	if (nNbByte0 > 0)
 		memset(pRaw+nSizeData+1, 0, nNbByte0);
-	// taille en i8
-	*(__int64 *)(pRaw + nSizeRaw - 8) = (__int64)nSizeData;
+	
+	// taille en bits a mettre dans les 64 derniers bits au format big-endian
+	UINT64 nTailleEnBit = nSizeData * 8;
+	SetUI64BigEndian(pRaw + nSizeRaw - 8, nTailleEnBit);
 
 	// rebond
 	sha2_256_raw( (uint512 *) pRaw, nSizeRaw / 64, (uint256 *)pHash);

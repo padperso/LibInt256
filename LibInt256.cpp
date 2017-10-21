@@ -53,38 +53,9 @@ CBigIntFixed fEllipticBtc(const CInt256 &x, const CInt256 &y)
 	return clResModP;
 }
 
-#include <iostream>
+
 void ECDSA_Test_ALL(void);
-std::string sha256(std::string input);
-
-void  _ShaTest1(PCXSTR szValToHash, PCXSTR szResultOK)
-{
-	// calcul de sha256(szTestVal)
-	//std::string input = szTestVal;
-	//std::string output = sha256(input);
-	// vérif du résultat
-	CBigInt clResHash;
-	clResHash.InitFromSha3_256(szValToHash);
-	CBigInt clTest;
-	clTest.FromStrBasePrefix(szResultOK);
-	clTest.DBG_Print();
-	clResHash.DBG_Print();
-	XASSERT(clTest == clResHash);
-}
-
-
-void SHA_Test()
-{
-	_ShaTest1("",	  
-			  "0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
-	_ShaTest1("A",	  
-			  "0x559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd");
-	_ShaTest1("abcd", 
-			  "0x88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589");
-	_ShaTest1("The SHA(Secure Hash Algorithm) is one of a number of cryptographic hash functions.A cryptographic hash is like a signature for a text or a data file.SHA - 256 algorithm generates an almost - unique, fixed size 256 - bit(32 - byte) hash.Hash is a one way function – it cannot be decrypted back.This makes it suitable for password validation, challenge hash authentication, anti - tamper, digital signatures.",
-			  "0xd37e2b4fab26640551c69abc3bdf1c14534b215c7f3e1d44c0b65029c99147fb");
-
-}
+void SHA_Test();
 
 
 int main()

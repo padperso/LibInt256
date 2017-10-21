@@ -163,6 +163,7 @@
     <ClCompile Include="src\ECDSA_Test.cpp" />
     <ClCompile Include="src\EllipticCurve.cpp" />
     <ClCompile Include="src\sha2_256.cpp" />
+    <ClCompile Include="src\sha2_256_Test.cpp" />
     <ClCompile Include="src\Sha2_2emeImpl.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
