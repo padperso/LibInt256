@@ -1119,7 +1119,7 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
  {
 	 // si hexa
 	 if (pszVal[0] == '0'
-		 && pszVal[1] == 'x')
+		 && (pszVal[1] == 'x') || (pszVal[1] == 'X') )
 	 {
 		 // base 16
 		 FromStrHexa(pszVal+2);
