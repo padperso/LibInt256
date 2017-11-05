@@ -13,6 +13,7 @@ protected:
 	#define NLIMIT_PREALLOCINBYTE (4*8)
 	UINT64 m_PreAlloc[NLIMIT_PREALLOCINBYTE / 8];
 
+
 public:
 	// constructeur. init a 0
 	CBigInt(void);
@@ -209,6 +210,10 @@ protected:
 	void _Divide_Algo1(const CBigInt &clDiviseur, OUT CBigInt *pclQuotient, OUT CBigInt *pclclReste) const;
 	//Algo 2
 	void _Divide_Algo2(const CBigInt &clDiviseur, OUT CBigInt *pclQuotient, OUT CBigInt *pclclReste) const;
+
+	// calcul de 2^N/this
+	// fonction utilitairep our la division.
+	CBigInt _clCalc2PowNSurX(int npow2) const;
 
 };
 typedef const CBigInt &RCCBigInt;

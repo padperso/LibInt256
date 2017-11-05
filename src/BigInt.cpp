@@ -1075,6 +1075,42 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 
  }
 
+ // calcul de 2^N/this
+ // fonction utilitairep our la division.
+ CBigInt CBigInt::_clCalc2PowNSurX(int npow2 ) const
+ {
+
+	 // pour commencer avec une valeur proche du bon résultat
+	 STQuickDiv stQuickDivisorA;
+	 _GetQuickDiv(&stQuickDivisorA);
+
+	 // crée un big int qui vaut 2^N
+	 //CBigInt P2 = 1;
+	 //P2.MultPow2(npow2);
+	 CBigInt P2AuCarre = 1;
+	 P2AuCarre.MultPow2(2 * npow2);
+
+	 // appromixation 2^N  / X
+	 CBigInt X = P2AuCarre._clDivQuick(stQuickDivisorA);
+
+
+	 CBigInt temp;
+	 for (int i = 0; i < 10000; i++)
+	 {
+		 temp = X * (P2AuCarre - (*this)*X);
+		 temp.DivPow2(2 * npow2);
+		 //si on a convergé
+		 if (temp.bIsZero())
+			 break; // terminée
+		 // 1 tour de plus
+		 X += temp;
+		 XASSERT(i < 9999);
+	 }
+
+	 return X;
+ }
+
+
 //Algo 1 (Newtown)
 void CBigInt::_Divide_Algo1(const CBigInt &clDiviseur, OUT CBigInt *pclQuotient, OUT CBigInt *pclReste) const
 {
@@ -1102,36 +1138,10 @@ void CBigInt::_Divide_Algo1(const CBigInt &clDiviseur, OUT CBigInt *pclQuotient,
 		if (npow2 % 8 != 0)
 			npow2 += 8 - (npow2 % 8);
 	 }
-	 // crée un big int qui vaut 2^N
-	 CBigInt P2 = 1;
-	 P2.MultPow2(npow2);
-	 CBigInt P2AuCarre = 1;
-	 P2AuCarre.MultPow2(2*npow2);
-
-	 // appromixation de 48P/17 − 32P/17
-	 //X = (3*P2 - 4 * D) / 2
-	 //CBigInt X = (3 * P2 - 4 * clDiviseur);
-	 CBigInt X = P2AuCarre._clDivQuick(stQuickDivisorA);
-
-
-	 CBigInt temp;
-	 for (int i = 0; i < 10000; i++)
-	 {
-		// X.DBG_Print();
-		 //temp = (P2AuCarre - clDiviseur*X);
-		 //temp.DBG_Print();
-		 //temp = X * temp;
-		 //temp.DBG_Print();
-		 temp = X * (P2AuCarre - clDiviseur*X);
-		 temp.DivPow2(2 * npow2);
-		 //temp.DBG_Print();
-		 //si on a convergé
-		 if (temp.bIsZero())
-			 break;
-		 X += temp;
-		 XASSERT(i < 9999);
-	 }
-
+	 
+	// Calcul de 1/X
+	 CBigInt X = clDiviseur._clCalc2PowNSurX(npow2);
+	
 	 // res est entier = bitDécaleDroite( (X * N), 2*npow2)
 	 CBigInt clQuotient = X* (*this);
 	 clQuotient.DivPow2(2 * npow2);
