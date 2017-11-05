@@ -67,7 +67,10 @@ void ECDSA_Sign(const CBigInt &HashToSign,   // valeur a signer
 	while (!bkValide)
 	{
 		// choix d'un nombre au hasard K
-		K = GetHasardCrypto256();
+		//K = GetHasardCrypto256();
+		//@@@@@TESt
+		K.InitFromSha3_256("123456789");
+
 		// calcul de P2 : K * P1
 		P2 = gclsekp256k1.MultBigInt(P1, K);
 		X = P2.m_clX.Modulo(N);

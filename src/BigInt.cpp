@@ -1,5 +1,9 @@
 ﻿// 23.00A BigInt.cpp PAD
 
+// ref:
+// http://cacr.uwaterloo.ca/hac/about/chap14.pdf
+
+
 #include "central.h"
 #include "BigInt.h"
 #include <algorithm>    // std::max
@@ -237,14 +241,19 @@ UINT32 static _nAddI4WithCarry(UINT32  n1, UINT32 n2, UINT32 n3, OUT UINT32 *pnC
 	return     nRes32;
 }
 // addition de 3 I8 avec gestion du carry
-UINT64 static _nAddI8WithCarry(UINT64  n1, UINT64 n2, UINT64 n3, OUT UINT64 *pnCarry)
+UINT64 static _nAddI8WithCarry(UINT64  n1, UINT64 n2, BYTE nCarry, OUT BYTE *pnCarryOUT)
 {
+	// fonction intrinsèque visual C++
+	UINT64 nRes = 0;
+	*pnCarryOUT = _addcarry_u64(nCarry, n1, n2, &nRes);
+	return nRes;
+	/*
 	UINT64 nRes64 = n1 + n2;
-	*pnCarry = (nRes64 < n1);
-	nRes64 += n3;
-	*pnCarry |= ((nRes64 < n1) || (nRes64 < n2));
-
+	*pnCarryOUT = (nRes64 < n1);
+	nRes64 += nCarry;
+	*pnCarryOUT |= ((nRes64 < n1) || (nRes64 < n2));
 	return nRes64;
+	*/
 }
 void static _MultI4(UINT32  n1, UINT32 n2, OUT UINT32 *pnLow, UINT32 *pnHigh)
 {
@@ -387,7 +396,7 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 {
 	CBigInt clRes;
 
-	UINT64 nCarry = 0; // retenue
+	BYTE nCarry = 0; // retenue
 					  
 	// ajout des mots de 32 nits en commencant par le poids faible
 	int nNbI8 = std::max<int>( A.nSizeInI8(), B.nSizeInI8() ) ;
@@ -453,27 +462,27 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
  // a += 4,
  void CBigInt::AddUI4(UINT32 n, EOptionAdd eOption)
  {
-	 UINT32 nCarry = 0;
+	 BYTE nCarry = 0;
 	 // addition de this+ paramr 
-	 UINT32 nRes = _nAddI4WithCarry(_nGetI4Add(0), n, 0, &nCarry);
+	 UINT64 nRes = _nAddI8WithCarry(_nGetI8Add(0), n, 0, &nCarry);
 	 //MAJ dans this
-	 _SetI4(0, nRes);
+	 _SetI8(0, nRes);
 
 	 // ajout aux poids forts si dépassement
-	 int nNbI4 = nSizeInI4();
+	 int nNbI8 = nSizeInI8();
 	 int i;
-	 for (i = 1; i < nNbI4 && nCarry; i++)
+	 for (i = 1; i < nNbI8 && nCarry; i++)
 	 {
 		 XASSERT(nCarry == 0 || nCarry == 1);
 		 // addition de this + carry précédent
-		 UINT32 nRes = _nAddI4WithCarry(_nGetI4Add(i), 0, nCarry, &nCarry);
+		 UINT64 nRes = _nAddI8WithCarry(_nGetI8Add(i), 0, nCarry, &nCarry);
 		 //MAJ dans this
-		 _SetI4(i, nRes);
+		 _SetI8(i, nRes);
 	 }
 	 // gestion du carry si l'addtion donne un nombre qui dépasse
 	 if (nCarry && eOption != eAllowOverflow)
 	 {
-		 _SetI4(i, nCarry);
+		 _SetI8(i, nCarry);
 	 }
 
 	 // suppression des mots avec 0 au début
@@ -572,8 +581,9 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
  // Multiplication par un entier 64
  void CBigInt::MultUI64(UINT64 nMultiplicateur)
  {
-	 UINT64 nCarry = 0; // retenue
-	 CBigInt clSrcCopie(*this);
+	 UINT64 nCarry64 = 0; // retenue
+	 BYTE nCarry = 0;
+	CBigInt clSrcCopie(*this);
 	 BOOL bNegatif = clSrcCopie.bNegative();
 	 if (bNegatif)
 	 {
@@ -598,15 +608,16 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 		 //  (h,l)  = a * m
 		 UINT64 nA = clSrcCopie._nGetI8(i);
 		 _MultI8(nA, nMultiplicateur, &nResLow, &nResHigh);
-
-		 UINT64 nRes = _nAddI8WithCarry(0, nResLow, nCarry, &nCarry);
+		 BYTE nCarry = 0;
+		 UINT64 nRes = _nAddI8WithCarry(nResLow, nCarry64, 0, &nCarry);
 		 _SetI8(i, nRes);
-		 nCarry += nResHigh;
+		 nCarry64 = nResHigh + nCarry ;
 	 }
 	 // ajout du carry
-	 if (nCarry)
+	 //XASSERT(nCarry64 == nCarry);
+	 if (nCarry64)
 	 {
-		 _SetI8(i, nCarry);
+		 _SetI8(i, nCarry64);
 		 i++;
 	 }
 
@@ -1418,6 +1429,14 @@ int _nGetValByteHexa(PCXSTR pszVal)
 	 _Trim0();// cas de "000000000000000001"
  }
 
+ // version rapide de Modulo
+ // Barrett reduction : https://en.wikipedia.org/wiki/Barrett_reduction
+ CBigInt CBigInt::_FastModulo(const CBigInt &clDiviseur) const
+ {
+
+	 CBigInt res;
+	 return res;
+ }
 
  // renvoie le modulo = reste de la divistion par <clDiviseur>
  CBigInt CBigInt::Modulo(const CBigInt &clDiviseur) const

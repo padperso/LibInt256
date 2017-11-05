@@ -215,5 +215,9 @@ protected:
 	// fonction utilitairep our la division.
 	CBigInt _clCalc2PowNSurX(int npow2) const;
 
+	// version rapide de Modulo
+	// Barrett reduction : https://en.wikipedia.org/wiki/Barrett_reduction
+	CBigInt _FastModulo(const CBigInt &clDiviseur) const;
+
 };
 typedef const CBigInt &RCCBigInt;
