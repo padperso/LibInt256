@@ -9,8 +9,8 @@ protected:
 	UINT64 *m_TabVal;
 	// Taille  en octets
 	int	   m_nSizeInByte;
-	// OPTIM : Tant que  moins de 256 bits =  4 QWORD, pas d'alloc dyn
-	#define NLIMIT_PREALLOCINBYTE (4*8)
+	// OPTIM : Tant que  moins de 512 bits =  8 QWORD, pas d'alloc dyn
+	#define NLIMIT_PREALLOCINBYTE (8*8)
 	UINT64 m_PreAlloc[NLIMIT_PREALLOCINBYTE / 8];
 
 
@@ -75,6 +75,8 @@ public:
 	//a+= 4
 	// a += 4,
 	void AddUI4(UINT32 n, EOptionAdd eOption);
+	void AddUI8(UINT64 n, EOptionAdd eOption);
+
 	void operator +=(UINT32 n);
 	void operator +=(INT32 n); // cas signé
 	// soustraction

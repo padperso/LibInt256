@@ -464,6 +464,40 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
  {
 	 BYTE nCarry = 0;
 	 // addition de this+ paramr 
+	 UINT64 *p = m_TabVal;
+	 UINT64 nRes = _nAddI8WithCarry(*p, n, 0, &nCarry);
+	 //MAJ dans this
+	 //_SetI8(0, nRes);
+	 *p = nRes;
+
+	 // ajout aux poids forts si dépassement
+	 int nNbI8 = nSizeInI8();
+	 int i;
+	 for (i = 1; i < nNbI8 && nCarry; i++)
+	 {
+		 XASSERT(nCarry == 0 || nCarry == 1);
+		 // addition de this + carry précédent
+		  //nRes = _nAddI8WithCarry(_nGetI8Add(i), 0, nCarry, &nCarry);
+		  p++;
+		  nRes = _nAddI8WithCarry(*p, 0, nCarry, &nCarry);
+		  //MAJ dans this
+		  *p = nRes;
+		 //B_SetI8(i, nRes);
+	 }
+	 // gestion du carry si l'addtion donne un nombre qui dépasse
+	 if (nCarry && eOption != eAllowOverflow)
+	 {
+		 _SetI8(i, nCarry);
+	 }
+
+	 // suppression des mots avec 0 au début
+	 _Trim0();
+ }
+ // a += 4,
+ void CBigInt::AddUI8(UINT64 n, EOptionAdd eOption)
+ {
+	 BYTE nCarry = 0;
+	 // addition de this+ paramr 
 	 UINT64 nRes = _nAddI8WithCarry(_nGetI8Add(0), n, 0, &nCarry);
 	 //MAJ dans this
 	 _SetI8(0, nRes);
