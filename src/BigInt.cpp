@@ -1157,8 +1157,11 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 //Algo 1 (Newtown)
 void CBigInt::_Divide_Algo1(const CBigInt &clDiviseur, OUT CBigInt *pclQuotient, OUT CBigInt *pclReste) const
 {
-	//this->DBG_Print();
-	//clDiviseur.DBG_Print();
+	if (0)
+	{
+		this->DBG_Print();
+		clDiviseur.DBG_Print();
+	}
 
 	 // pour commencer avec une valeur proche du bon résultat
  	 STQuickDiv stQuickDivisorA;
@@ -1207,7 +1210,10 @@ void CBigInt::_Divide_Algo1(const CBigInt &clDiviseur, OUT CBigInt *pclQuotient,
 		 clReste = *this - clQuotient * clDiviseur;
 		 //XASSERT(clReste.nCompareU(clDiviseur) < 0);
 
-		 XASSERT(nNbTour++ < 17);
+		 if (nNbTour >= 7)
+		 {
+			 XASSERT(nNbTour++ < 7);
+		 }
 	 }
 	 if (clReste.bNegative())
 	 {
@@ -1554,6 +1560,14 @@ static void _Insert1Char(PXSTR pszVal, int nLenInChar, char cNum)
  // vers une chaine en base 16.
  void CBigInt::ToStrBase16(OUT PXSTR pszVal, int nLenInChar) const
  {
+	 // cas de 0
+	 if (bIsZero())
+	 {
+		 *pszVal = '0';
+		 *pszVal = 0;
+		 return;
+	 }
+
 	 PXSTR pszCur = pszVal;
 	 int nLenRemaining = nLenInChar;
 	 int nNbI4 = nSizeInI4();
@@ -1570,6 +1584,9 @@ static void _Insert1Char(PXSTR pszVal, int nLenInChar, char cNum)
 	 }
 	 // ferme la chaine
 	 *pszCur = 0;
+	 
+
+
  }
  
  // calcul du PGCD de 2 nombre par l'algorithme d'eclide étendu

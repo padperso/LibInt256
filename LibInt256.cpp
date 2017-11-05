@@ -10,6 +10,7 @@
 #include "src/BigInt.h"
 #include "src/sha2_256.h"
 
+
 //class  CInt256 : public CInt
 void _Print(const CBigIntFixed &clNum)
 {

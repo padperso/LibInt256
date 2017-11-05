@@ -59,11 +59,13 @@ void ECDSA_Test_BaseFunc(void)
 
 }
 
+
+
 // test signature
-void ECDSA_Test_Sign(void)
+void ECDSA_Test_SignParam(PCXSTR pszK, PCXSTR pszX, PCXSTR pszY)
 {
 	CBigInt HashToSign(99);
-	CBigInt PrivKey("0x8eee2c6fe6c375dda3f5897149b5aa133ae63d53dba817bcb8e464bb36074b86");
+	CBigInt PrivKey(pszK); //"0x8eee2c6fe6c375dda3f5897149b5aa133ae63d53dba817bcb8e464bb36074b86");
 	
 	// récup de la clé publique
 	CBigPoint2D PublicKey;
@@ -71,8 +73,8 @@ void ECDSA_Test_Sign(void)
 	//PublicKey.m_clX.DBG_Print();
 	//PublicKey.m_clY.DBG_Print();
 	// résultat a trouver ( trouvé via ecda ptyhon)
-	CBigInt clPKRes_X("0xaf909720eb1d1aa3b9f9c9878f8758990349f8d4a87989af798bef3f8227e461");
-	CBigInt clPKRes_Y("0xc5b285e2482a87667f4ce1e2da69dca4745fdf69daeff76a3d642c5a6ea34bef");
+	CBigInt clPKRes_X(pszX); // "0xaf909720eb1d1aa3b9f9c9878f8758990349f8d4a87989af798bef3f8227e461");
+	CBigInt clPKRes_Y(pszY); //"0xc5b285e2482a87667f4ce1e2da69dca4745fdf69daeff76a3d642c5a6ea34bef");
 	TESTME(PublicKey.m_clX == clPKRes_X);
 	TESTME(PublicKey.m_clY == clPKRes_Y);
 
@@ -135,6 +137,23 @@ void ECDSA_Test_Sign(void)
 	PublicKey.m_clX.DBG_Print();
 	PublicKey.m_clY.DBG_Print();
 	*/
+}
+
+// test signature
+void ECDSA_Test_Sign( )
+{
+	ECDSA_Test_SignParam(
+		  "0x8eee2c6fe6c375dda3f5897149b5aa133ae63d53dba817bcb8e464bb36074b86"
+		, "0xaf909720eb1d1aa3b9f9c9878f8758990349f8d4a87989af798bef3f8227e461"
+		, "0xc5b285e2482a87667f4ce1e2da69dca4745fdf69daeff76a3d642c5a6ea34bef");
+
+	// valeurs validée avec https://bitcore.io/playground/#/address
+	ECDSA_Test_SignParam(
+		  "0x0514fd4c12e20b91cbaafaa47318ce467da10309dc2ef052fd425d4614a63d01"
+		, "0x82e964a742f419ccd9a6a9bacd361feecb3be7f0bb468d392ec5000fea6d6833"
+		, "0xe4e601c15a1c693362bac4cb32e2c640e6a16dd2cf8826eccc9c6e0b977a4ac2");
+
+
 }
 
 
