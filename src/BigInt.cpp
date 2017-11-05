@@ -1085,10 +1085,8 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 	 _GetQuickDiv(&stQuickDivisorA);
 
 	 // crée un big int qui vaut 2^N
-	 //CBigInt P2 = 1;
-	 //P2.MultPow2(npow2);
 	 CBigInt P2AuCarre = 1;
-	 P2AuCarre.MultPow2(2 * npow2);
+	 P2AuCarre.MultPow2( npow2);
 
 	 // appromixation 2^N  / X
 	 CBigInt X = P2AuCarre._clDivQuick(stQuickDivisorA);
@@ -1098,7 +1096,7 @@ void CBigInt:: _SetI1(int nNumMot, UINT8 nVal)
 	 for (int i = 0; i < 10000; i++)
 	 {
 		 temp = X * (P2AuCarre - (*this)*X);
-		 temp.DivPow2(2 * npow2);
+		 temp.DivPow2(npow2);
 		 //si on a convergé
 		 if (temp.bIsZero())
 			 break; // terminée
@@ -1125,8 +1123,8 @@ void CBigInt::_Divide_Algo1(const CBigInt &clDiviseur, OUT CBigInt *pclQuotient,
 	// https://en.wikipedia.org/wiki/Division_algorithm
 
 	 // récup du log2 du diviseur = N
-	 int npow2_min  =  clDiviseur.nGetLog2()/2 ;
-	 int npow2_min2 =  nGetLog2()/2;
+	 int npow2_min  =  clDiviseur.nGetLog2() ;
+	 int npow2_min2 =  nGetLog2();
 	 if (npow2_min < npow2_min2)
 		 npow2_min = npow2_min2;
 	 int npow2 = 8;
@@ -1144,8 +1142,8 @@ void CBigInt::_Divide_Algo1(const CBigInt &clDiviseur, OUT CBigInt *pclQuotient,
 	
 	 // res est entier = bitDécaleDroite( (X * N), 2*npow2)
 	 CBigInt clQuotient = X* (*this);
-	 clQuotient.DivPow2(2 * npow2);
-		//    X := X + X × (1 - D' × X)
+	 clQuotient.DivPow2( npow2);
+	//    X := X + X × (1 - D' × X)
 	 CBigInt clReste = *this - (clQuotient* clDiviseur);
 	 // si a cause d'un pb d'arrondi le reste est >= au diviseur
 	 XDBG(int nNbTour = 0);
@@ -1154,7 +1152,7 @@ void CBigInt::_Divide_Algo1(const CBigInt &clDiviseur, OUT CBigInt *pclQuotient,
 		// clReste.DBG_Print();
 		 // on divise le reste
 		 CBigInt clQ2 = X*clReste;
-		 clQ2.DivPow2(2 * npow2);
+		 clQ2.DivPow2( npow2);
 		 if (clQ2.bIsZero())
 			 clQ2 = 1; // cas ou l'erreur d'arrondi donne 0.99999
 

@@ -6,7 +6,7 @@
 #include "EllipticCurve.h"
 #include "ECDSA.h"
 
-#define TESTME( X )  if (!(X))  { XASSERT(FALSE); printf("** FAILED ** \n" ); }
+#define TESTME( X )  if (!(X))  { XASSERT(FALSE); printf("** FAILED ** \n" ); exit(-1); }
 
 CEllipticCurve clsekp256k1("0", "7", "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F",
 									 "0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141");
