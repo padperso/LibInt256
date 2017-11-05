@@ -1461,10 +1461,13 @@ int _nGetValByteHexa(PCXSTR pszVal)
  void CBigInt::FromRawBytes(PBYTE pByte, int nByteCount)
  {
 	 XASSERT(nByteCount > 0);
-	 // alloc
-	 _Resize(nByteCount, eSansRemplissage);
+	 // alloc avec des 0
+	 _Resize(nByteCount, eSansSigne);
+	 // pour cas ou l'on dut allouer un peu plus garnd (padding sur 8)
+	 int nDeltaPadding = nSizeInByte() - nByteCount;
+	 XASSERT(nDeltaPadding >= 0);
 	 // copie de la source dans <m_TabVal>
-	 memcpy(m_TabVal, pByte, nByteCount);
+	 memcpy((BYTE *)m_TabVal + nDeltaPadding, pByte, nByteCount);
 
 	 _Trim0();// cas de "000000000000000001"
  }
@@ -1678,6 +1681,11 @@ static void _Insert1Char(PXSTR pszVal, int nLenInChar, char cNum)
 	 return inverse;
  }
 
+ // 32 bits de poids faible
+ UINT32 CBigInt::nGetLow32Bit(void) const
+ {
+	 return _nGetI4(0);
+ }
 
 
 

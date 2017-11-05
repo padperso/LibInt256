@@ -42,8 +42,9 @@ EXPORT void BI_FromBigInt(PCBigInt p, PCBigInt psrc)
 // affectation par un entier sur 4
 EXPORT void BI_FromI4(PCBigInt p, UINT32 n)
 {
-	*p = n
+	*p = n;
 }
+
 
 
 
@@ -67,6 +68,12 @@ EXPORT char* BI_ToHexa(PCBigInt p)
 //		pRes++;
 	return pRes;
 }
+// récup des 32 bits de poids faible
+EXPORT UINT32 BI_GetLowI4(PCBigInt p)
+{
+	return p->nGetLow32Bit();
+}
+
 
 // x ext-il négatif (strict, ie <0)?
 EXPORT BOOL BI_IsNegative(PCBigInt p)
@@ -76,12 +83,18 @@ EXPORT BOOL BI_IsNegative(PCBigInt p)
 // x ext-il posifif (strict, ie >0) ?
 EXPORT BOOL BI_IsPositive(PCBigInt p)
 {
-	return !(p->bNegative() && p->bIsZero());
+	return !(p->bNegative() || p->bIsZero());
 }
 // x ext-il égal à 0 ?
 EXPORT BOOL BI_IsZero(PCBigInt p)
 {
 	return p->bIsZero();
+}
+
+// division entière par <pDiviseur> avec reste (modulo)
+EXPORT void BI_DivModulo(PCBigInt p, PCBigInt pDiviseur, OUT PCBigInt pQuotient, OUT  PCBigInt  pReste )
+{
+	p->Divide(*pDiviseur, pQuotient, pReste);
 }
 
 // -- ECDSA

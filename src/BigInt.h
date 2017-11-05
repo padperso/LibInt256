@@ -119,6 +119,8 @@ public:
 	CBigInt Modulo(const CBigInt &clDiviseur) const;
 	// log2 
 	int nGetLog2(void) const;
+	// 32 bits de poids faible
+	UINT32 nGetLow32Bit(void) const;
 
 
 
