@@ -139,8 +139,15 @@ BOOL ECDSA_bCheckSign(const CBigInt     &Hash,     // valeur signée
 	if (PRes.bIsZero()) return FALSE;
 
 	// que si X = r mod n
-	if (PRes.m_clX.Modulo(N) != Signature.m_clX.Modulo(N))
+	CBigInt XMod = PRes.m_clX.Modulo(N);
+	CBigInt SMod = Signature.m_clX.Modulo(N);
+
+	if (XMod != SMod)
+	{
+		XMod.DBG_Print();
+		SMod.DBG_Print();
 		return FALSE;
+	}
 
 	// VALIDE !
 	return TRUE;

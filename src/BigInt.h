@@ -114,6 +114,9 @@ public:
 	void DivideBy2(void);
 	// renvoie le modulo = reste de la divistion par <clDiviseur>
 	CBigInt Modulo(const CBigInt &clDiviseur) const;
+	// log2 
+	int nGetLog2(void) const;
+
 
 
 	// renvoie la valeur abosolue
@@ -134,7 +137,8 @@ public:
 	void FromStrBase10(PCXSTR pszVal);
 	// depuis une chaine en base 16
 	// ex : "1E99423A4ED27608A15A2616A2B0E9E52CED330AC530EDCC32C8FFC6A526AEDD"
-	void FromStrHexa(PCXSTR pszVal);
+	enum EStrMode { eHexComplementA2, ePositif };
+	void FromStrHexa(PCXSTR pszVal, EStrMode eMode=ePositif);
 	// depuis une série d'octet
 	void FromRawBytes(PBYTE pByte, int nByteCount);
 
@@ -144,7 +148,7 @@ public:
 	void ToStrBase16(OUT PXSTR pszVal, int nLenInChar) const;
 
 	// depuis une chaine en base 10 ou 16 si commence par 0x
-	void FromStrBasePrefix(PCXSTR pszVal);
+	void FromStrBasePrefix(PCXSTR pszVal, EStrMode eMode=ePositif);
 
 	// taille en bit
 	UINT nSizeInBit(void) const { return m_nSizeInByte * 8; }
@@ -155,12 +159,12 @@ public:
 
 	// Tests de surface
 	static void sTEST_ALL(void);
-#ifdef _DEBUG
+//#ifdef _DEBUG
 	#define DBGPRINT_NORC     0x01
 	#define DBGPRINT_NORALIGN 0x02
 	
 	void DBG_Print(int nOption=0) const;
-#endif//_DEBUG
+//#endif//_DEBUG
 protected:
 	// constructeur helper
 	void _Init(int nSizeInByte);
@@ -199,6 +203,12 @@ protected:
 	CBigInt _clDivQuick(const struct STQuickDiv &stQuickDiv) const;
 	// vers un INT64
 	UINT64 _nToUI8(void) const;
+
+	// Division 
+	//Algo 1 (Newtown)
+	void _Divide_Algo1(const CBigInt &clDiviseur, OUT CBigInt *pclQuotient, OUT CBigInt *pclclReste) const;
+	//Algo 2
+	void _Divide_Algo2(const CBigInt &clDiviseur, OUT CBigInt *pclQuotient, OUT CBigInt *pclclReste) const;
 
 };
 typedef const CBigInt &RCCBigInt;

@@ -11,7 +11,9 @@ CEllipticCurve::CEllipticCurve(PCXSTR pszA, PCXSTR pszB, PCXSTR pszModulo, PCXST
 	m_clA.FromStrBasePrefix(pszA);
 	m_clB.FromStrBasePrefix(pszB);
 	m_clModulo.FromStrBasePrefix(pszModulo);
+	XASSERT(!m_clModulo.bNegative());
 	m_clOrdre.FromStrBasePrefix(pszOrdre);
+	XASSERT(!m_clModulo.bNegative());
 }
 
 

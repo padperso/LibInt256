@@ -164,7 +164,9 @@
     <ClCompile Include="src\EllipticCurve.cpp" />
     <ClCompile Include="src\sha2_256.cpp" />
     <ClCompile Include="src\sha2_256_Test.cpp" />
-    <ClCompile Include="src\Sha2_2emeImpl.cpp" />
+    <ClCompile Include="src\Sha2_2emeImpl.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>

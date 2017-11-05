@@ -10,7 +10,7 @@
 
 #include <iostream>
 // dans l'autre cpp
-std::string sha256(std::string input);
+//std::string sha256(std::string input);
 
 void  _ShaTest1(PCXSTR szValToHash, PCXSTR szResultOK)
 {
@@ -32,7 +32,7 @@ void  _ShaTest1(PCXSTR szValToHash, PCXSTR szResultOK)
 	CBigInt clResHash;
 	clResHash.InitFromSha3_256(szValToHash);
 	CBigInt clTest;
-	clTest.FromStrBasePrefix(szResultOK);
+	clTest.FromStrBasePrefix(szResultOK, CBigInt::eHexComplementA2 );
 	//clTest.DBG_Print();
 	//clResHash.DBG_Print();
 	XASSERT(clTest == clResHash);

@@ -6,6 +6,8 @@
 #include "EllipticCurve.h"
 #include "ECDSA.h"
 
+#define TESTME( X )  if (!(X))  { XASSERT(FALSE); printf("** FAILED ** \n" ); }
+
 CEllipticCurve clsekp256k1("0", "7", "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F",
 									 "0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141");
 
@@ -23,36 +25,36 @@ void ECDSA_Test_BaseFunc(void)
 
 
 
-	XASSERT(clsekp256k1.bPointEstSurLaCourbe(P1));
+	TESTME(clsekp256k1.bPointEstSurLaCourbe(P1));
 
 	CBigPoint2D MoinsP1 = P1;
 	MoinsP1.m_clY = -MoinsP1.m_clY;
 	MoinsP1.Modulo(clsekp256k1.clGetModulo());
 	CBigPoint2D P0 = clsekp256k1.Add(P1, MoinsP1);
-	XASSERT(P0.bIsZero());
+	TESTME(P0.bIsZero());
 
 
 	// test : (P+P) + (-P) == P
 	CBigPoint2D P2 = clsekp256k1.Add(P1, P1);
 	CBigPoint2D P1_2 = clsekp256k1.Add(P2, MoinsP1);;
-	XASSERT(P1_2 == P1);
+	TESTME(P1_2 == P1);
 
 	// test : (P+P) + P == P + (P + P)
 	CBigPoint2D P3 = clsekp256k1.Add(P2, P1);
 	CBigPoint2D P3_2 = clsekp256k1.Add(P1, P2);
-	XASSERT(P3_2 == P3);
+	TESTME(P3_2 == P3);
 
 	// test : (P+P) + (P + P) == (P + P + P) + P
 	CBigPoint2D P4 = clsekp256k1.Add(P3, P1);
-	XASSERT(clsekp256k1.bPointEstSurLaCourbe(P4));
+	TESTME(clsekp256k1.bPointEstSurLaCourbe(P4));
 	CBigPoint2D P4_2 = clsekp256k1.Add(P2, P2);
-	XASSERT(P4_2 == P4);
+	TESTME(P4_2 == P4);
 
 	// Test K * P
 	CBigPoint2D P4_K = clsekp256k1.MultBigInt(P1, 4);
-	XASSERT(P4_K == P4);
+	TESTME(P4_K == P4);
 	CBigPoint2D P3_K = clsekp256k1.MultBigInt(P1, 3);
-	XASSERT(P3_K == P3);
+	TESTME(P3_K == P3);
 
 
 }
@@ -71,8 +73,8 @@ void ECDSA_Test_Sign(void)
 	// résultat a trouver ( trouvé via ecda ptyhon)
 	CBigInt clPKRes_X("0xaf909720eb1d1aa3b9f9c9878f8758990349f8d4a87989af798bef3f8227e461");
 	CBigInt clPKRes_Y("0xc5b285e2482a87667f4ce1e2da69dca4745fdf69daeff76a3d642c5a6ea34bef");
-	XASSERT(PublicKey.m_clX == clPKRes_X);
-	XASSERT(PublicKey.m_clY == clPKRes_Y);
+	TESTME(PublicKey.m_clX == clPKRes_X);
+	TESTME(PublicKey.m_clY == clPKRes_Y);
 
 
 	// -- Signature ---
@@ -84,7 +86,12 @@ void ECDSA_Test_Sign(void)
 
 	// vérif
 	BOOL bOK = ECDSA_bCheckSign(HashToSign, Signature, PublicKey );
-	XASSERT(bOK);
+	TESTME(bOK);
+	if (!bOK)
+	{
+		printf("ECDSA_bCheckSign FAILED\n");
+	}
+
 
 
 	/*
