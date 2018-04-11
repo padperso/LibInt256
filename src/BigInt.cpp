@@ -193,6 +193,7 @@ const CBigInt & CBigInt::operator =(const CBigInt &clSrc)
 void CBigInt::CopieFrom(const CBigInt &clSrc)
 {
 	// si la source n'a pas la meme taille
+
 	if (clSrc.nSizeInByte() != nSizeInByte())
 	{
 		// réalloc
@@ -214,6 +215,11 @@ BOOL CBigInt::bIsZero(void) const
 BOOL CBigInt::bNegative(void) const
 {
 	return (m_TabVal[nSizeInI8() - 1] & BITHIGH_64) != 0;
+}
+//indique si on est impair
+BOOL CBigInt::bIsOdd(void) const
+{
+	return (m_TabVal[0] & 1) == 1;
 }
 // addition de 3 I4 avec gestion du carry
 UINT32 static _nAddI4WithCarry_DBG(UINT32  n1, UINT32 n2, UINT32 n3, OUT UINT32 *pnCarry)
@@ -1662,7 +1668,7 @@ static void _Insert1Char(PXSTR pszVal, int nLenInChar, char cNum)
 	 CBigInt pgdc, x, y;
 	 sPGDCExt(val, mod, &pgdc, &x, &y);
 	 
-	 // on ne doit être premier avec <modulo> sinon l'inver modulaire n'exite pas
+	 // on ne doit être premier avec <modulo> sinon l'inverse modulaire n'exite pas
 	 if (pgdc != 1)
 	 {
 		 XASSERT(FALSE);
@@ -1673,11 +1679,17 @@ static void _Insert1Char(PXSTR pszVal, int nLenInChar, char cNum)
 		 x = mod - ((-x).Modulo(mod));
 	 CBigInt inverse = x.Modulo(mod);
 
+	 //@TEst
+	 CBigInt TestVal = inverse * val;
+	 if (TestVal.Modulo(mod) != 1)
+	 {
+		 __debugbreak();
+	 }
 
 #ifdef _DEBUG
-	 CBigInt TestVal = inverse * val;
-	 XASSERT(TestVal.Modulo(mod) == 1);
-#endif/_DEBUG
+	 CBigInt TestVal2 = inverse * val;
+	 XASSERT(TestVal2.Modulo(mod) == 1);
+#endif//_DEBUG
 	 return inverse;
  }
 

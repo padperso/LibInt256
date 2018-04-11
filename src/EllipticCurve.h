@@ -42,6 +42,10 @@ public:
 
 protected:
 	// Addition d'un point avec lui meme
-	CBigPoint2D _clPointDoubling(RCCBigPoint2D A) const
-		;
+	CBigPoint2D _clPointDoubling(RCCBigPoint2D A) const;
+	// Multiplication d'un point par un entier au sens de l'addition précédente
+	// version sans cacke
+	CBigPoint2D _MultBigInt_NoCache(RCCBigPoint2D A, const CBigInt &K);
+
+	bool _bInitCache(RCCBigPoint2D A);
 };

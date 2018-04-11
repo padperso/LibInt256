@@ -92,5 +92,8 @@
     <ClCompile Include="src\Wl2Cpp.cpp">
       <Filter>Fichiers sources</Filter>
     </ClCompile>
+    <ClCompile Include="src\TabPow2CahceECDSA .cpp">
+      <Filter>Fichiers sources</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

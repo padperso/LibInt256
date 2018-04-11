@@ -36,6 +36,8 @@ public:
 	BOOL bIsZero(void) const;
 	//indique si on est un nombre négatif
 	BOOL bNegative(void) const;
+	//indique si on est impair
+	BOOL bIsOdd(void) const;
 	// comparation non signée < = >.
 	// renvoie -1 si onest < a clNombre2. 0 si égal. 1 si on est supérieur
 	int nCompareU(RCBigInt clNombre2) const;
@@ -102,6 +104,7 @@ public:
 	CBigInt Pow3(void) const;
 
 
+
 	// négation : x = -x
 	friend CBigInt operator -(RCBigInt A);
 	void Negate(void);
@@ -121,6 +124,8 @@ public:
 	int nGetLog2(void) const;
 	// 32 bits de poids faible
 	UINT32 nGetLow32Bit(void) const;
+	// tronque 256 bits
+	void Tronque256Bits(void) const;
 
 
 

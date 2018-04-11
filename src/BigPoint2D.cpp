@@ -8,8 +8,8 @@
 
 void CBigPoint2D::SetXY(PCXSTR pszX, PCXSTR pszY)
 {
-	m_clX.FromStrBase10(pszX);
-	m_clY.FromStrBase10(pszY);
+	m_clX.FromStrBasePrefix(pszX);
+	m_clY.FromStrBasePrefix(pszY);
 }
 // Init a partir de coord x,y en bigint
 void CBigPoint2D::SetXY(const CBigInt X, const CBigInt Y)

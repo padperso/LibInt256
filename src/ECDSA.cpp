@@ -5,12 +5,22 @@
 #include "BigInt.h"
 #include "EllipticCurve.h"
 
+//	secp256k1.P = fromHex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F")
+//	secp256k1.N = fromHex("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141")
+//	secp256k1.B = fromHex("0000000000000000000000000000000000000000000000000000000000000007")
+//	secp256k1.Gx = fromHex("79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798")
+//	secp256k1.Gy = fromHex("483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8")
 
 //CBigInt clN_
 CEllipticCurve gclsekp256k1("0", "7", "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEFFFFFC2F", 
-									  "0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141");
-#define nCOORDX_Secp256k1 "55066263022277343669578718895168534326250603453777594175500187360389116729240"
-#define nCOORDY_Secp256k1 "32670510020758816978083085130507043184471273380659243275938904335757337482424"
+									  "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141");
+//										 FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
+//#define nCOORDX_Secp256k1 "55066263022277343669578718895168534326250603453777594175500187360389116729240"
+//#define nCOORDY_Secp256k1 "32670510020758816978083085130507043184471273380659243275938904335757337482424"
+#define nCOORDX_Secp256k1 "0x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798"
+#define nCOORDY_Secp256k1 "0x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8"
+							 
+
 // Init point d'origine P1 
 CBigPoint2D P1;
 
@@ -67,24 +77,45 @@ void ECDSA_Sign(const CBigInt &HashToSign,   // valeur a signer
 	while (!bkValide)
 	{
 		// choix d'un nombre au hasard K
-		//K = GetHasardCrypto256();
-		//@@@@@TESt
-		K.InitFromSha3_256("123456789");
+		K = GetHasardCrypto256();
+		// doit être positif
+		while (K.bNegative())
+			K = GetHasardCrypto256();
 
 		// calcul de P2 : K * P1
 		P2 = gclsekp256k1.MultBigInt(P1, K);
 		X = P2.m_clX.Modulo(N);
 		// si X mod N == 0 on doit choisir un autre  K
 		bkValide = !X.bIsZero();
+		// le bit de poids fort ne doit pas être a 1, sinon x/y sont considéré comme négatifs
+		// et rejeté.
+		if (X.nGetBit(255) == 1)
+			bkValide = FALSE;
 		if (bkValide)
 		{
 			// calcul de Y
-			Y = K.InvertModulo(N) * (HashToSign + PrivateKey * P2.m_clX);
+			Y = K.InvertModulo(N) * (HashToSign + PrivateKey * X);
 			Y = Y.Modulo(N);
 			// si Y mod N == 0 on doit choisir un autre  K
 			bkValide = !Y.bIsZero();
+			//@A revoir
+			if (Y.nGetBit(255) == 1)
+				bkValide = FALSE;
 		}
 	}//while (bkValide)
+
+	// le bit de poids fort ne doit pas être a 1, sinon x/y sont considéré comme négatifs
+	// et rejeté.
+	if (X.nGetBit(255) == 1)
+	{ 
+		//X =  -X;
+		//X = X.Modulo(N);
+	}
+	if (Y.nGetBit(255) == 1)
+	{
+		//Y =  Y - N;
+		//Y = Y.Modulo(N);
+	}
 
 	// résultat
 	pSignature->SetXY( X, Y);
@@ -147,8 +178,6 @@ BOOL ECDSA_bCheckSign(const CBigInt     &Hash,     // valeur signée
 
 	if (XMod != SMod)
 	{
-		XMod.DBG_Print();
-		SMod.DBG_Print();
 		return FALSE;
 	}
 

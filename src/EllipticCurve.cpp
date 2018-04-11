@@ -112,14 +112,80 @@ CBigPoint2D CEllipticCurve::Add(RCCBigPoint2D A, RCCBigPoint2D B)
 
 }
 
-// Multiplication d'un poiunt pas un entier au sens de l'addition précédente
-CBigPoint2D CEllipticCurve::MultBigInt(RCCBigPoint2D A, const CBigInt &K)
-{
-	CBigPoint2D clRes;
+bool gbCacheInit = false;
+CBigPoint2D *clAKPow2_Cache; // [256];
 
-	// A * K*2^i
+
+// VERSION pour génération
+/*
+#define POUR_GENERATION
+void CEllipticCurve::_InitCache(RCCBigPoint2D A)
+{
+	if (gbCacheInit) return;
+
+	clAKPow2_Cache = new CBigPoint2D[256];
+
 	CBigPoint2D clAKPow2= A;
 
+	for (int i = 0; i < 256; i++)
+	{
+		clAKPow2_Cache[i] = clAKPow2;
+
+#ifdef POUR_GENERATION
+		printf("\r\n // ---- 2^%d = ", i);
+		printf("\r\n{\"0x");
+		clAKPow2.m_clX.DBG_Print(DBGPRINT_NORALIGN | DBGPRINT_NORC);
+		printf("\",\"0x");
+		clAKPow2.m_clY.DBG_Print(DBGPRINT_NORALIGN | DBGPRINT_NORC);
+		printf("\"},");
+#endif//POUR_GENERATION		
+
+
+		// clAKPow2 = clAKPow2*clAKPow2
+		clAKPow2 = Add( clAKPow2, clAKPow2);
+	}
+
+	gbCacheInit = true;
+}
+*/
+
+void GetValCacheEC(int nPow2, OUT CBigInt &X, OUT CBigInt &Y);
+
+bool CEllipticCurve::_bInitCache(RCCBigPoint2D A)
+{
+	// OK Que si X = 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
+	//	      et Y = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8
+	CBigPoint2D clAKPow2;
+	GetValCacheEC(0, clAKPow2.m_clX, clAKPow2.m_clY);
+	if (!(clAKPow2 == A))
+		return false; // cache pas utilisable
+
+	if (gbCacheInit) return true;
+
+
+	// alloc cache
+	clAKPow2_Cache = new CBigPoint2D[256];
+
+
+	for (int i = 0; i < 256; i++)
+	{
+		// récup valeur dans tableau pré-calculé
+		GetValCacheEC(i, clAKPow2.m_clX, clAKPow2.m_clY);
+		// init cache valeur i
+		clAKPow2_Cache[i] = clAKPow2;
+	}
+
+	gbCacheInit = true;
+	return true;
+}
+
+// Multiplication d'un point par un entier au sens de l'addition précédente
+// version sans cacke
+CBigPoint2D CEllipticCurve::_MultBigInt_NoCache(RCCBigPoint2D A, const CBigInt &K)
+{
+	CBigPoint2D clRes;
+	// A * K*2^i
+	CBigPoint2D clAKPow2= A;
 	int nNbBit = K.nSizeInBit();
 	for (int i = 0; i < nNbBit; i++)
 	{
@@ -132,8 +198,44 @@ CBigPoint2D CEllipticCurve::MultBigInt(RCCBigPoint2D A, const CBigInt &K)
 			clRes = Add( clRes, clAKPow2);
 		}
 
-		// clAKPow2 = 2*clAKPow2
+		// APow2 = 2*APow2
 		clAKPow2 = Add( clAKPow2, clAKPow2);
+	}
+
+	return clRes;
+}
+
+// Multiplication d'un point par un entier au sens de l'addition précédente
+CBigPoint2D CEllipticCurve::MultBigInt(RCCBigPoint2D A, const CBigInt &K)
+{
+	CBigPoint2D clRes;
+
+	if (!_bInitCache(A))
+	{
+		return _MultBigInt_NoCache(A, K);
+	}
+		
+
+
+	int nNbBit = K.nSizeInBit();
+	for (int i = 0; i < nNbBit; i++)
+	{
+		
+
+		// récup bit I
+		int nBitI = K.nGetBit(i);
+		// si bit mis
+		if (nBitI)
+		{
+			//XASSERT(clAKPow2_Cache[i] == clAKPow2);
+			// R += K*2^î
+			clRes = Add( clRes, clAKPow2_Cache[i]);
+		}
+
+		// clAKPow2 = clAKPow2*clAKPow2
+		//clAKPow2_Cache[i] = clAKPow2;
+		//clAKPow2 = Add( clAKPow2, clAKPow2);
+
 	}
 
 	return clRes;
